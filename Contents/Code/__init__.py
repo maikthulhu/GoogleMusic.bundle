@@ -7,6 +7,7 @@ NAME = L('Title')
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
+api = Api()
 ################################################################################
 
 def Start():
@@ -53,7 +54,7 @@ def MusicMainMenu():
     return dir
 
 def GMusic_Authenticate():
-    api = Api()
+    global api
     authed = api.login(Prefs['email'], Prefs['password'])
 
     if authed:
