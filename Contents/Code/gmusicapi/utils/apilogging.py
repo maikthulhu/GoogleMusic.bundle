@@ -73,7 +73,8 @@ class LogController(object):
         :param name: the base name desired.
         :param unique: if True, return a unique version of the base name."""
 
-        name_to_give = "{0}.{1}".format(root_logger_name, name)
+#        name_to_give = "{0}.{1}".format(root_logger_name, name)
+        name_to_give = "%s.%s" % (root_logger_name, name)
 
         already_distributed = name in cls.distrib_names
 
@@ -82,7 +83,8 @@ class LogController(object):
         else:
             if unique:
                 cls.distrib_names[name] += 1
-                name_to_give = "{0}.{1}_{2}".format(root_logger_name, name, cls.distrib_names[name])
+#                name_to_give = "{0}.{1}_{2}".format(root_logger_name, name, cls.distrib_names[name])
+                name_to_give = "%s.%s_%s" % (root_logger_name, name, cls.distrib_names[name])
 
         return logging.getLogger(name_to_give)
 

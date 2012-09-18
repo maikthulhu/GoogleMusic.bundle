@@ -25,7 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
+#from __future__ import print_function
 from getpass import getpass
 try:
     # These are for python3 support
@@ -105,7 +105,8 @@ class ClientLogin(object):
 
         try:
             resp_obj = urlopen(req)
-        except HTTPError as e:
+#        except HTTPError as e:
+        except HTTPError, e:
             err = e.code
             return err, e.read()
         resp = resp_obj.read()

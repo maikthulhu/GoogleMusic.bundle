@@ -27,11 +27,12 @@
 
 """The protocol layer is a one-to-one mapping of calls to Google Music."""
 
+from __future__ import with_statement
 
 import string
 import os
 import random
-from collections import namedtuple
+#from collections import namedtuple
 import exceptions
 from uuid import getnode as getmac
 from socket import gethostname
@@ -68,7 +69,8 @@ class WC_Call(object):
         """Return the url to make the call at."""
 
         #Most calls send u=0 and xt=<cookie value>
-        qstring = '?u=0&xt={0}'.format(query_string['xt'])
+#        qstring = '?u=0&xt={0}'.format(query_string['xt'])
+        qstring = '?u=0&xt=%s' % (query_string['xt'])
 
         return cls._base_url + cls._suburl + cls.__name__ + qstring
 
@@ -586,7 +588,8 @@ class WC_Protocol(object):
                 for key in song:
                     allowed_values = Metadata_Expectations.get_expectation(key).allowed_values
                     if allowed_values and song[key] not in allowed_values:
-                        LogController.get_logger("modifyentries").warning("setting key {0} to unallowed value {1} for id {2}. Check metadata expectations in protocol.py".format(key, song[key], song["id"]))
+#                        LogController.get_logger("modifyentries").warning("setting key {0} to unallowed value {1} for id {2}. Check metadata expectations in protocol.py".format(key, song[key], song["id"]))
+                        LogController.get_logger("modifyentries").warning("setting key %s to unallowed value %s for id %s. Check metadata expectations in protocol.py" % (key, song[key], song["id"]))
                         
 
             req = {"entries": songs}

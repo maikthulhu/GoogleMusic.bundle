@@ -44,5 +44,6 @@ if __name__ == '__main__':
         obj = json.load(infile)
         schema = json.load(schemafile)
         validate(obj, schema)
-    except ValueError as e:
+#    except ValueError as e:
+    except ValueError, e:
         raise SystemExit(e)

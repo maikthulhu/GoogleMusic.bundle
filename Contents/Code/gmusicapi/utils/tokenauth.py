@@ -25,7 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
+#from __future__ import print_function
 try:
     # These are for python3 support
     from urllib.request import HTTPCookieProcessor, Request, build_opener
@@ -74,7 +74,8 @@ class TokenAuth(object):
 
         try:
             resp_obj = handler.open(req)
-        except HTTPError as e:
+#        except HTTPError as e:
+        except HTTPError, e:
             err = e.code
             return err, e.read()
         resp = resp_obj.read()

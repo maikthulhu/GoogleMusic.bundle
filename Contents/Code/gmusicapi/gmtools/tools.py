@@ -30,6 +30,7 @@
 import operator
 import re
 import collections
+import sys
 
 
 def get_id_pairs(track_list):
@@ -282,9 +283,27 @@ class SongMatcher(object):
         def __init__(self, results):
             self.results = results
 
+    def _namedtuple(name, children):
+        """
+            collections.namedtuple is available in (python >= 2.6)
+        """
+        v = sys.version_info
+        if v[1] >= 6 and v[0] < 3:
+            return collections.namedtuple(name, children)
+        else:
+            def fancydict(*args):
+                d = {}
+                i = 0
+                for child in children:
+                    d[child.strip()] = args[i]
+                    i += 1
+                return d
+    
+            return fancydict
 
     #A named tuple to hold the frozen args when querying recursively.
-    QueryState = collections.namedtuple('QueryState', 'orig t_breaker mods auto')
+#    QueryState = collections.namedtuple('QueryState', 'orig t_breaker mods auto')
+    QueryState = _namedtuple('QueryState', 'orig t_breaker mods auto')
 
     def query_library(self, query, tie_breaker=no_tiebreak, modifiers=[], auto=False):
         """Queries the library for songs.
@@ -334,7 +353,8 @@ class SongMatcher(object):
                             raise self.TieBroken(tie_breaker(query, results))
                         else:
                             return next_results
-        except self.TieBroken as tie:
+#        except self.TieBroken as tie:
+        except self.TieBroken, tie:
             return tie.results
 
 

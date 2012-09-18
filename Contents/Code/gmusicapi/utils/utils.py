@@ -27,6 +27,8 @@
 
 """Utility functions used across api code."""
 
+from __future__ import with_statement
+
 import string
 import re
 import copy
@@ -76,7 +78,8 @@ def copy_md_tags(from_fname, to_fname):
                 safe = str(e)
             
             to_tags[k] = safe
-        except mutagen.easyid3.EasyID3KeyError as e:
+#        except mutagen.easyid3.EasyID3KeyError as e:
+        except mutagen.easyid3.EasyID3KeyError, e:
             #Raised because we're copying in an unsupported in easy-mode key.
             log.debug("skipping non easy key", exc_info=True) 
         except:

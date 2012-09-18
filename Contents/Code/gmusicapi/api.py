@@ -33,7 +33,12 @@ This api is not supported nor endorsed by Google, and could break at any time.
 **Respect Google in your use of the API.** Use common sense: protocol compliance, reasonable load, etc.
 """
 
-import json
+from __future__ import with_statement
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import re
 import string
 import time
@@ -92,7 +97,8 @@ class CallFailure(exceptions.Exception):
         self.res = res
 
     def __str__(self):
-        return "api call {} failed; server returned {}".format(self.name, self.res)
+#        return "api call {} failed; server returned {}".format(self.name, self.res)
+        return "api call %s failed; server returned %s" % (self.name, self.res)
 
 class Api(UsesLog):
     def __init__(self, suppress_failure=False):
@@ -639,7 +645,8 @@ class Api(UsesLog):
         if success and res_schema:
             try:
                 validictory.validate(res, res_schema)
-            except ValueError as details:
+#            except ValueError as details:
+            except ValueError, details:
                 self.log.warning("Received an unexpected response from call %s.", service_name)
                 self.log.debug("full response: %s", res)
                 self.log.debug("failed schema: %s", res_schema)
@@ -735,7 +742,8 @@ class Api(UsesLog):
                             t_handle.write(audio_data)
                             
 
-                    except OSError as e:
+#                    except OSError as e:
+                    except OSError, e:
                         if err_output is not None:
                             self.log.error("FFmpeg could not convert the file to mp3. output was: %s", err_output)
                         else:
@@ -1020,7 +1028,8 @@ class PlaySession(object):
 
             extra_url_args = ""
             for name, val in extra_args.iteritems():
-                extra_url_args += "&{0}={1}".format(name, val)
+#                extra_url_args += "&{0}={1}".format(name, val)
+                extra_url_args += "&%s=%s" % (name, val)
 
             url += extra_url_args
 

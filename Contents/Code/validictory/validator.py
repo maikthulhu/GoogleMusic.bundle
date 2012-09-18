@@ -4,7 +4,7 @@ import copy
 import socket
 from datetime import datetime
 import warnings
-from collections import Mapping, Container
+#from collections import Mapping, Container
 
 if sys.version_info[0] == 3:
     _str_type = str
@@ -113,7 +113,8 @@ class SchemaValidator(object):
         return type(val) == bool
 
     def validate_type_object(self, val):
-        return isinstance(val, Mapping)
+#        return isinstance(val, Mapping)
+         return isinstance(val, dict)
 
     def validate_type_array(self, val):
         return isinstance(val, (list, tuple))
@@ -162,7 +163,8 @@ class SchemaValidator(object):
             elif isinstance(fieldtype, dict):
                 try:
                     self.__validate(fieldname, x, fieldtype)
-                except ValueError as e:
+#                except ValueError as e:
+                except ValueError, e:
                     raise e
             else:
                 try:
@@ -212,7 +214,8 @@ class SchemaValidator(object):
                             try:
                                 self.validate(value[itemIndex],
                                               items[itemIndex])
-                            except ValueError as e:
+#                            except ValueError as e:
+                            except ValueError, e:
                                 raise type(e)("Failed to validate field '%s' "
                                               "list schema: %s" %
                                               (fieldname, e))
@@ -220,7 +223,8 @@ class SchemaValidator(object):
                     for eachItem in value:
                         try:
                             self._validate(eachItem, items)
-                        except ValueError as e:
+#                        except ValueError as e:
+			except ValueError, e:
                             # a bit of a hack: replace reference to _data
                             # with 'list item' so error messages make sense
                             old_error = str(e).replace("field '_data'",
@@ -479,7 +483,8 @@ class SchemaValidator(object):
         '''
         value = x.get(fieldname)
         if value is not None:
-            if not isinstance(options, Container):
+#            if not isinstance(options, Container):
+            if not isinstance(options, dict):
                 raise SchemaError("Enumeration %r for field '%s' must be a "
                                   "container", (options, fieldname))
             if value not in options:
