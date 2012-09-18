@@ -1,8 +1,8 @@
 from gmusicapi.api import Api
 
-PREFIX = '/music/googlemusic'
+MUSIC_PREFIX = '/music/googlemusic'
 
-NAME = "Google Music"
+NAME = L('Title')
 
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
@@ -10,29 +10,27 @@ ICON = 'icon-default.png'
 ################################################################################
 
 def Start():
-    Log.Debug("This is a test")
-    # Init
-    Plugin.AddPrefixHandler(PREFIX, MainMenu, NAME, ICON, ART)
+    Plugin.AddPrefixHandler(MUSIC_PREFIX, MusicMainMenu, NAME, ICON, ART)
+
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
     Plugin.AddViewGroup("List", viewMode = "List", mediaType = "items")
 
-    # Plugin artwork setup
-    MediaContainer.art = R(ART)
     MediaContainer.title1 = NAME
     MediaContainer.viewGroup = "List"
+    MediaContainer.art = R(ART)
     DirectoryItem.thumb = R(ICON)
 
 def ValidatePrefs():
-    return
+    return True
 
-def MainMenu():
+def MusicMainMenu():
     dir = MediaContainer(viewGroup="InfoList")
 
     if 'GMusicConnection' not in Dict:
         Dict['GMusicConnection'] = {}
 
-    if not Prefs['gmusic_user'] or not Prefs['gmusic_pass']:
-        dir.Append(PrefsItem(title=L("Prefs Title")))
+    if not Prefs['email'] or not Prefs['password']:
+        dir.Append(PrefsItem(title=L('Prefs Title')))
         return dir
     elif 'authed' in Dict['GMusicConnection']:
         if Dict['GMusicConnection']['authed']:
@@ -43,27 +41,20 @@ def MainMenu():
         authed = GMusic_Authenticate()
 
     if not authed:
-        dir.Append(PrefsItem(title=L("Prefs Title"), summary=L("Bad Password")))
+        dir.Append(PrefsItem(title=L('Prefs Title'), summary=L('Bad Password')))
     else:
-        dir.Append(
-            Function(
-                DirectoryItem(
-                    PlaylistList,
-                    title=L("Playlists")
-                )
-            )
-        )
-        dir.Append(Function(DirectoryItem(ArtistList, title=L("Artists"))))
-        dir.Append(Function(DirectoryItem(AlbumList, title=L("Albums"))))
-        dir.Append(Function(DirectoryItem(SongList, title=L("Songs"))))
-        dir.Append(Function(InputDirectoryItem(Search, title=L("Search"))))
-        dir.Append(PrefsItem(title=L("Prefs Title Change")))
+        dir.Append(Function(DirectoryItem(PlaylistList, L('Playlists'))))
+        dir.Append(Function(DirectoryItem(ArtistList, L('Artists'))))
+        dir.Append(Function(DirectoryItem(AlbumList, L('Albums'))))
+        dir.Append(Function(DirectoryItem(SongList, L('Songs'))))
+        dir.Append(Function(InputDirectoryItem(SearchResults, L('Search'), L('Search'), summary=L('Search Prompt'), thumb=R(ICON), art=R(ART))))
+        dir.Append(PrefsItem(title=L('Prefs Title Change')))
 
     return dir
 
 def GMusic_Authenticate():
     api = Api()
-    authed = api.login(Prefs['gmusic_user'], Prefs['gmusic_pass'])
+    authed = api.login(Prefs['email'], Prefs['password'])
 
     if authed:
         return True
@@ -82,5 +73,5 @@ def AlbumList(sender):
 def SongList(sender):
     return
 
-def Search(sender, query=None):
+def SearchResults(sender, query=None):
     return
