@@ -65,7 +65,7 @@ def GMusic_Authenticate():
 def PlaylistList(sender):
     return
 
-def AristList(sender):
+def ArtistList(sender):
     return
 
 def AlbumList(sender):
