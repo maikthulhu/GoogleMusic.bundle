@@ -70,7 +70,7 @@ def PlaylistList(sender):
     playlists = api.get_all_playlist_ids()
 
     for k, v in playlists['user'].iteritems():
-        dir.Append(Function(DirectoryItem(Playlist, k, id=v)))
+        dir.Append(Function(DirectoryItem(Playlist, k), id=v))
 
     return dir
 
@@ -80,7 +80,13 @@ def Playlist(sender, id=None):
     songs = api.get_playlist_songs(id)
 
     for song in songs:
-        dir.Append(Function(DirectoryItem(Song, "%s - %s" % (song.artist, song.title), song)))
+	if song.has_key('artist'):
+	    s = song['artist']
+	if not s == None:
+	    s += " - "
+	if song.has_key('title'):
+	    s += song['title']
+        dir.Append(Function(DirectoryItem(Song, s), song=song))
 
     return dir
 
@@ -93,7 +99,7 @@ def AlbumList(sender):
 def SongList(sender):
     return
 
-def song(sender, song=None):
+def Song(sender, song=None):
     return
 
 def SearchResults(sender, query=None):
