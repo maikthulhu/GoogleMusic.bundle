@@ -70,7 +70,6 @@ def PlaylistList(sender):
     playlists = api.get_all_playlist_ids()
 
     for k, v in playlists['user'].iteritems():
-        #TODO: how do you pass other info for DirectoryItems?
         dir.Append(Function(DirectoryItem(Playlist, k, id=v)))
 
     return dir
@@ -83,7 +82,7 @@ def Playlist(sender, id=None):
     for song in songs:
         dir.Append(Function(DirectoryItem(Song, "%s - %s" % (song.artist, song.title), song)))
 
-    return
+    return dir
 
 def ArtistList(sender):
     return
