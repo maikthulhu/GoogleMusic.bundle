@@ -27,6 +27,8 @@ def ValidatePrefs():
 def MusicMainMenu():
     dir = MediaContainer(viewGroup="InfoList")
 
+    # Borrowed menu display based on prefs/auth from Pandora plugin
+    # https://github.com/plexinc-plugins/Pandora.bundle/
     if 'GMusicConnection' not in Dict:
         Dict['GMusicConnection'] = {}
 
@@ -63,7 +65,15 @@ def GMusic_Authenticate():
         return False
 
 def PlaylistList(sender):
-    return
+    dir = MediaContainer(viewGroup="InfoList")
+
+    playlists = api.get_all_playlist_ids()
+
+    for k, v in playlists['user'].iteritems():
+        #TODO: how do you pass other info for DirectoryItems?
+        dir.Append(Function(DirectoryItem(Playlist, k)))
+
+    return dir
 
 def ArtistList(sender):
     return
