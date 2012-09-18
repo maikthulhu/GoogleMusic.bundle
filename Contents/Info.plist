@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+     <key>CFBundleIdentifier</key>
+     <string>net.halfzero.plex.GoogleMusic</string>
+     <key>PlexFrameworkVersion</key>
+     <string>2</string>
+     <key>PlexPluginClass</key>
+     <string>Content</string>
+     <key>PlexClientPlatforms</key>
+     <string>MacOSX,iOS,Android,LGTV,Linux,Windows,Roku</string>
+     <key>PlexAudoCodec</key>
+     <array>
+             <string>MP3</string>
+             <string>AAC</string>
+     </array>
+</dict>
+</plist>

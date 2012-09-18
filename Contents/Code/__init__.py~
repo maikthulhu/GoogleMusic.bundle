@@ -1,0 +1,79 @@
+from gmusicapi.api import Api
+
+PREFIX = '/music/googlemusic'
+
+NAME = "Google Music"
+
+ART = 'art-default.jpg'
+ICON = 'icon-default.png'
+
+################################################################################
+
+def Start():
+    Log.Debug("This is a test")
+    # Init
+    Plugin.AddPrefixHandler(PREFIX, MainMenu, NAME, ICON, ART)
+    Plugin.AddViewGroup("List", viewMode = "List", mediaType = "items")
+
+    # Plugin artwork setup
+    MediaContainer.art = R(ART)
+    MediaContainer.title1 = NAME
+    MediaContainer.viewGroup = "List"
+    DirectoryItem.thumb = R(ICON)
+
+def ValidatePrefs():
+    return
+
+def MainMenu():
+    #oc = ObjectContainer(no_cache=True)
+    oc = MeidaContainer(viewMode="List")
+
+    if 'GMusicConnection' not in Dict:
+        Dict['GMusicConnection'] = {}
+
+    if not Prefs['gmusic_user'] or not Prefs['gmusic_pass']:
+        oc.add(PrefsObject(title=L("Prefs Title")))
+        return oc
+    elif 'authed' in Dict['GMusicConnection']:
+        if Dict['GMusicConnection']['authed']:
+            authed = Dict['GMusicConnection']['authed']
+        else:
+            authed = GMusic_Authenticate()
+    else:
+        authed = GMusic_Authenticate()
+
+    if not authed:
+        oc.add(PrefsObject(title=L("Prefs Title"), summary=L("Bad Password")))
+    else:
+        oc.add(DirectoryObject(key=Callback(PlaylistList, title=L("Playlists")), title=L("Playlists")))
+        oc.add(DirectoryObject(key=Callback(ArtistList, title=L("Artists")), title=L("Artists")))
+        oc.add(DirectoryObject(key=Callback(AlbumList, title=L("Albums")), title=L("Albums")))
+        oc.add(DirectoryObject(key=Callback(SongList, title=L("Songs")), title=L("Songs")))
+        oc.add(InputDirectoryObject(key=Callback(Search, title=L("Search")), title=L("Search"), prompt=L("Search Prompt")))
+        oc.add(PrefsObject(title=L("Prefs Title Change")))
+
+    return oc
+
+def GMusic_Authenticate():
+    api = Api()
+    authed = api.login(Prefs['gmusic_user'], Prefs['gmusic_pass'])
+
+    if authed:
+        return True
+    else:
+        return False
+
+def PlaylistList():
+    return
+
+def AristList():
+    return
+
+def AlbumList():
+    return
+
+def SongList():
+    return
+
+def Search(query):
+    return
