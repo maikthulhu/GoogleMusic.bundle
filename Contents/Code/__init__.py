@@ -71,9 +71,19 @@ def PlaylistList(sender):
 
     for k, v in playlists['user'].iteritems():
         #TODO: how do you pass other info for DirectoryItems?
-        dir.Append(Function(DirectoryItem(Playlist, k)))
+        dir.Append(Function(DirectoryItem(Playlist, k, id=v)))
 
     return dir
+
+def Playlist(sender, id=None):
+    dir = MediaContainer(viewGroup="InfoList")
+    
+    songs = api.get_playlist_songs(id)
+
+    for song in songs:
+        dir.Append(Function(DirectoryItem(Song, "%s - %s" % (song.artist, song.title), song)))
+
+    return
 
 def ArtistList(sender):
     return
@@ -82,6 +92,9 @@ def AlbumList(sender):
     return
 
 def SongList(sender):
+    return
+
+def song(sender, song=None):
     return
 
 def SearchResults(sender, query=None):
