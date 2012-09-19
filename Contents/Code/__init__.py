@@ -16,10 +16,14 @@ def Start():
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
     Plugin.AddViewGroup("List", viewMode = "List", mediaType = "items")
 
-    MediaContainer.title1 = NAME
-    MediaContainer.viewGroup = "List"
-    MediaContainer.art = R(ART)
-    DirectoryItem.thumb = R(ICON)
+    ObjectContainer.art = R(ART)
+    ObjectContainer.title1 = NAME
+    DirectoryObject.thumb = R(ICON)
+    
+    #MediaContainer.title1 = NAME
+    #MediaContainer.viewGroup = "List"
+    #MediaContainer.art = R(ART)
+    #DirectoryItem.thumb = R(ICON)
 
 def ValidatePrefs():
     return True
@@ -80,13 +84,13 @@ def Playlist(sender, id=None):
     songs = api.get_playlist_songs(id)
 
     for song in songs:
-	if song.has_key('artist'):
-	    s = song['artist']
-	if not s == None:
-	    s += " - "
-	if song.has_key('title'):
-	    s += song['title']
-        dir.Append(Function(DirectoryItem(Song, s), song=song))
+        if song.has_key('artist'):
+            s = song['artist']
+        if not s == None:
+            s += " - "
+        if song.has_key('title'):
+            s += song['title']
+        dir.Append(Function(DirectoryItem(PlayAudio, s), song=song))
 
     return dir
 
@@ -99,8 +103,14 @@ def AlbumList(sender):
 def SongList(sender):
     return
 
-def Song(sender, song=None):
-    return
+def PlayAudio(sender, song=None):
+    if song:
+        song_url = api.get_stream_url(song['id'])
+
+    oc = ObjectContainer()
+    oc.add(TrackObject(key=song_url, rating_key=0, title=song['title']))
+
+    return oc
 
 def SearchResults(sender, query=None):
     return
