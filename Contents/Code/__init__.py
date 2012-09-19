@@ -13,23 +13,16 @@ api = Api()
 def Start():
     Plugin.AddPrefixHandler(MUSIC_PREFIX, MusicMainMenu, NAME, ICON, ART)
 
-    Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-    Plugin.AddViewGroup("List", viewMode = "List", mediaType = "items")
-
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
+
     DirectoryObject.thumb = R(ICON)
     
-    #MediaContainer.title1 = NAME
-    #MediaContainer.viewGroup = "List"
-    #MediaContainer.art = R(ART)
-    #DirectoryItem.thumb = R(ICON)
-
 def ValidatePrefs():
     return True
 
 def MusicMainMenu():
-    dir = MediaContainer(viewGroup="InfoList")
+    oc = ObjectContainer()
 
     # Borrowed menu display based on prefs/auth from Pandora plugin
     # https://github.com/plexinc-plugins/Pandora.bundle/
@@ -37,8 +30,8 @@ def MusicMainMenu():
         Dict['GMusicConnection'] = {}
 
     if not Prefs['email'] or not Prefs['password']:
-        dir.Append(PrefsItem(title=L('Prefs Title')))
-        return dir
+        oc.add(PrefsObject(title=L('Prefs Title')))
+        return oc
     elif 'authed' in Dict['GMusicConnection']:
         if Dict['GMusicConnection']['authed']:
             authed = Dict['GMusicConnection']['authed']
@@ -48,16 +41,16 @@ def MusicMainMenu():
         authed = GMusic_Authenticate()
 
     if not authed:
-        dir.Append(PrefsItem(title=L('Prefs Title'), summary=L('Bad Password')))
+        oc.add(PrefsObject(title=L('Prefs Title'), summary=L('Bad Password')))
     else:
-        dir.Append(Function(DirectoryItem(PlaylistList, L('Playlists'))))
-        dir.Append(Function(DirectoryItem(ArtistList, L('Artists'))))
-        dir.Append(Function(DirectoryItem(AlbumList, L('Albums'))))
-        dir.Append(Function(DirectoryItem(SongList, L('Songs'))))
-        dir.Append(Function(InputDirectoryItem(SearchResults, L('Search'), L('Search'), summary=L('Search Prompt'), thumb=R(ICON), art=R(ART))))
-        dir.Append(PrefsItem(title=L('Prefs Title Change')))
+        oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
+        oc.add(DirectoryObject(key=Callback(ArtistList), title=L('Artists')))
+        oc.add(DirectoryObject(key=Callback(AlbumList), title=L('Albums')))
+        oc.add(DirectoryObject(key=Callback(SongList), title=L('Songs')))
+        oc.add(InputDirectoryObject(key=Callback(SearchResults), title=L('Search'), prompt=L('Search Prompt')))
+        oc.add(PrefsObject(title=L('Prefs Title Change')))
 
-    return dir
+    return oc
 
 def GMusic_Authenticate():
     global api
@@ -68,49 +61,66 @@ def GMusic_Authenticate():
     else:
         return False
 
-def PlaylistList(sender):
-    dir = MediaContainer(viewGroup="InfoList")
+def GetTrack(song):
+    try:
+	album_art_url = 'http:%s' % song['albumArtUrl']
+    except:
+	album_art_url = None
+
+    track = TrackObject(
+        key = song['id'],
+        rating_key = song['id'],
+        title = song['title'],
+        album = song['album'],
+	artist = song['artist'],
+	duration = song['durationMillis'],
+	index = song['track'],
+	thumb = Resource.ContentsOfURLWithFallback(album_art_url, R(ICON)),
+	items = [
+	    MediaObject(
+		parts = [PartObject(key=Callback(PlayAudio, song=song, ext='mp3'))], # ext='mp3' is apparently EXTREMELY CRITICAL
+	        container = Container.MP3,
+		audio_codec = AudioCodec.MP3
+	    )
+	]
+    )
+
+    return track
+
+def PlaylistList():
+    oc = ObjectContainer()
 
     playlists = api.get_all_playlist_ids()
 
-    for k, v in playlists['user'].iteritems():
-        dir.Append(Function(DirectoryItem(Playlist, k), id=v))
-
-    return dir
-
-def Playlist(sender, id=None):
-    dir = MediaContainer(viewGroup="InfoList")
-    
-    songs = api.get_playlist_songs(id)
-
-    for song in songs:
-        if song.has_key('artist'):
-            s = song['artist']
-        if not s == None:
-            s += " - "
-        if song.has_key('title'):
-            s += song['title']
-        dir.Append(Function(DirectoryItem(PlayAudio, s), song=song))
-
-    return dir
-
-def ArtistList(sender):
-    return
-
-def AlbumList(sender):
-    return
-
-def SongList(sender):
-    return
-
-def PlayAudio(sender, song=None):
-    if song:
-        song_url = api.get_stream_url(song['id'])
-
-    oc = ObjectContainer()
-    oc.add(TrackObject(key=song_url, rating_key=0, title=song['title']))
+    for name, id in playlists['user'].iteritems():
+        oc.add(DirectoryObject(key=Callback(Playlist, id=id), title=name))
 
     return oc
 
-def SearchResults(sender, query=None):
+def Playlist(id=None):
+    oc = ObjectContainer()
+
+    songs = api.get_playlist_songs(id)
+
+    for song in songs:
+        track = GetTrack(song)
+	oc.add(track)
+
+    return oc
+
+def ArtistList():
+    return
+
+def AlbumList():
+    return
+
+def SongList():
+    return
+
+def PlayAudio(song=None):
+    song_url = api.get_stream_url(song['id'])
+
+    return Redirect(song_url)
+
+def SearchResults(query=None):
     return
