@@ -12,6 +12,8 @@ api = Api()
 
 def Start():
     Plugin.AddPrefixHandler(MUSIC_PREFIX, MusicMainMenu, NAME, ICON, ART)
+    Plugin.AddViewGroup('InfoList', viewMode = 'InfoList', mediaType = 'items')
+    Plugin.AddViewGroup('List', viewMode = 'List', mediaType = 'items')
 
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
