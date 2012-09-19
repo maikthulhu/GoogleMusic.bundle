@@ -11,9 +11,7 @@ api = Api()
 ################################################################################
 
 def Start():
-    Plugin.AddPrefixHandler(MUSIC_PREFIX, MusicMainMenu, NAME, ICON, ART)
-    Plugin.AddViewGroup('InfoList', viewMode = 'InfoList', mediaType = 'items')
-    Plugin.AddViewGroup('List', viewMode = 'List', mediaType = 'items')
+    Plugin.AddPrefixHandler(MUSIC_PREFIX, MainMenu, NAME, ICON, ART)
 
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
@@ -23,7 +21,7 @@ def Start():
 def ValidatePrefs():
     return True
 
-def MusicMainMenu():
+def MainMenu():
     oc = ObjectContainer()
 
     # Borrowed menu display based on prefs/auth from Pandora plugin
@@ -111,7 +109,44 @@ def Playlist(id=None):
     return oc
 
 def ArtistList():
-    return
+    oc = ObjectContainer()
+
+    songs = api.get_all_songs()
+    artists = list()
+
+    for song in songs:
+        if song['artist'] not in artists:
+            artists.append(song['artist'])
+    
+    artists.sort()
+
+    for artist in artists:
+	if artist != '':
+	    oc.add(ArtistObject(
+		key = Callback(ArtistSongs, artist=artist),
+		rating_key = artist,
+		title = artist
+		# number of tracks by artist
+		# art?
+		# number of albums?
+	        )
+	    )
+    
+    return oc
+
+def ArtistSongs(artist=None):
+    oc = ObjectContainer()
+
+    songs = api.get_all_songs()
+
+    # sort songs by album
+    # using the code below twice (except for artist check), make it generic
+    for song in songs:
+        if song['artist'] == artist:
+	    track = GetTrack(song)
+	    oc.add(track)
+
+    return oc
 
 def AlbumList():
     return
