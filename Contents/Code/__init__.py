@@ -1,4 +1,4 @@
-from gmusicapi.api import Api
+from gmusicapi.api import Api, AlreadyLoggedIn
 
 MUSIC_PREFIX = '/music/googlemusic'
 
@@ -54,7 +54,11 @@ def MainMenu():
 
 def GMusic_Authenticate():
     global api
-    authed = api.login(Prefs['email'], Prefs['password'])
+
+    try:
+        authed = api.login(Prefs['email'], Prefs['password'])
+    except AlreadyLoggedIn:
+	authed = True
 
     if authed:
         return True
@@ -93,19 +97,28 @@ def PlaylistList():
     playlists = api.get_all_playlist_ids()
 
     for name, id in playlists['user'].iteritems():
-        oc.add(DirectoryObject(key=Callback(Playlist, id=id), title=name))
+        oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id), title=name))
 
     return oc
 
-def Playlist(id=None):
+def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
     oc = ObjectContainer()
 
-    songs = api.get_playlist_songs(id)
-
+    if playlist_id:
+	songs = api.get_playlist_songs(playlist_id)
+    else:
+	songs = api.get_all_songs()
+    
     for song in songs:
-        track = GetTrack(song)
+        if artist and song['artist'].lower() != artist:
+	    continue
+	if album and song['album'].lower() != album:
+	    continue
+	track = GetTrack(song)
 	oc.add(track)
-
+    
+    oc.objects.sort(key=lambda obj: (obj.album, obj.index))
+    
     return oc
 
 def ArtistList():
@@ -115,41 +128,69 @@ def ArtistList():
     artists = list()
 
     for song in songs:
-        if song['artist'] not in artists:
-            artists.append(song['artist'])
+	found = False
+	for artist in artists:
+            if song['artist'] == '' or song['artistNorm'] in artist.itervalues():
+		found = True
+		break
+	if not found:
+            artists.append({
+		'name_norm': song['artistNorm'],
+		'name': song['artist'],
+            })
     
-    artists.sort()
-
     for artist in artists:
-	if artist != '':
-	    oc.add(ArtistObject(
-		key = Callback(ArtistSongs, artist=artist),
-		rating_key = artist,
-		title = artist
-		# number of tracks by artist
-		# art?
-		# number of albums?
-	        )
-	    )
+	oc.add(ArtistObject(
+	    key = Callback(GetTrackList, artist=artist['name_norm']),
+	    rating_key = artist['name_norm'],
+	    title = artist['name']
+	    # number of tracks by artist
+	    # art?
+	    # number of albums?
+	))
     
-    return oc
-
-def ArtistSongs(artist=None):
-    oc = ObjectContainer()
-
-    songs = api.get_all_songs()
-
-    # sort songs by album
-    # using the code below twice (except for artist check), make it generic
-    for song in songs:
-        if song['artist'] == artist:
-	    track = GetTrack(song)
-	    oc.add(track)
+    oc.objects.sort(key=lambda obj: obj.title)
 
     return oc
 
 def AlbumList():
-    return
+    oc = ObjectContainer()
+
+    songs = api.get_all_songs()
+    albums = list()
+
+    for song in songs:
+	found = False
+	for album in albums:
+	    if song['album'] == '' or song['albumNorm'] in album.itervalues():
+		found = True
+		break
+	if not found:
+	    album = {
+		'title_norm': song['albumNorm'],
+                'title': song['album'],
+	        'artist': song['artist'],
+	        'thumb': song.get('albumArtUrl', None)
+            }
+	    if album['thumb'] is not None:
+		album['thumb'] = "http:%s" % album['thumb']
+	    albums.append(album)
+
+    Log(len(albums))
+    for album in albums:
+	oc.add(AlbumObject(
+	    url = "http://music.google.com/",
+	    key = Callback(GetTrackList, album=album['title_norm']),
+	    #rating = 0.0,
+	    #rating_key = album['title'],
+            title = album['title'],
+	    artist = album['artist'],
+	    thumb = Resource.ContentsOfURLWithFallback(album['thumb'], R(ICON))
+	))
+
+    oc.objects.sort(key=lambda obj: obj.title)
+
+    return oc
 
 def SongList():
     return
