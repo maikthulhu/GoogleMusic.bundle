@@ -52,6 +52,17 @@ def MainMenu():
 
     return oc
 
+#def authenticated(func):
+#    def wrapper():
+#	try:
+#	    func()
+#	except:
+#	    if GMusic_Authenticate():
+#		func()
+#	    else:
+#		Log("RE-LOGIN FAILURE")
+#    return wrapper
+
 def GMusic_Authenticate():
     global api
 
@@ -76,6 +87,7 @@ def GetTrack(song):
         rating_key = song['id'],
         title = song['title'],
         album = song['album'],
+	#disc = song.get('disc', 0),
 	artist = song['artist'],
 	duration = song['durationMillis'],
 	index = song['track'],
@@ -91,24 +103,47 @@ def GetTrack(song):
 
     return track
 
+#@authenticated
 def PlaylistList():
     oc = ObjectContainer()
 
-    playlists = api.get_all_playlist_ids()
-
+    try:
+        playlists = api.get_all_playlist_ids()
+    except:
+	if GMusic_Authenticated():
+            playlists = api.get_all_playlist_ids()
+	else:
+	    Log("LOGIN FAILURE")
+	    return
+	    
     for name, id in playlists['user'].iteritems():
         oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id), title=name))
 
     return oc
 
+#@authenticated
 def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
     oc = ObjectContainer()
 
     if playlist_id:
-	songs = api.get_playlist_songs(playlist_id)
+	try:
+	    songs = api.get_playlist_songs(playlist_id)
+	except:
+	    if GMusic_Authenticated():
+	        songs = api.get_playlist_songs(playlist_id)
+	    else:
+		Log("LOGIN FAILURE")
+		return
     else:
-	songs = api.get_all_songs()
-    
+	try:
+	    songs = api.get_all_songs()
+	except:
+	    if GMusic_Authenticated():
+	        songs = api.get_all_songs()
+            else:
+		Log("LOGIN FAILURE")
+		return
+
     for song in songs:
         if artist and song['artist'].lower() != artist:
 	    continue
@@ -117,14 +152,24 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 	track = GetTrack(song)
 	oc.add(track)
     
+#    oc.objects.sort(key=lambda obj: (obj.album, obj.disc, obj.index))
     oc.objects.sort(key=lambda obj: (obj.album, obj.index))
     
     return oc
 
+#@authenticated
 def ArtistList():
     oc = ObjectContainer()
 
-    songs = api.get_all_songs()
+    try:
+        songs = api.get_all_songs()
+    except:
+	if GMusic_Authenticated():
+	    songs = api.get_all_songs()
+	else:
+	    Log("LOGIN FAILURE")
+	    return
+
     artists = list()
 
     for song in songs:
@@ -153,10 +198,19 @@ def ArtistList():
 
     return oc
 
+#@authenticated
 def AlbumList():
     oc = ObjectContainer()
 
-    songs = api.get_all_songs()
+    try:
+        songs = api.get_all_songs()
+    except:
+	if GMusic_Authenticated():
+	    songs = api.get_all_songs()
+	else:
+	    Log("LOGIN FAILURE")
+	    return
+
     albums = list()
 
     for song in songs:
@@ -179,10 +233,8 @@ def AlbumList():
     Log(len(albums))
     for album in albums:
 	oc.add(AlbumObject(
-	    url = "http://music.google.com/",
 	    key = Callback(GetTrackList, album=album['title_norm']),
-	    #rating = 0.0,
-	    #rating_key = album['title'],
+	    rating_key = album['title_norm'],
             title = album['title'],
 	    artist = album['artist'],
 	    thumb = Resource.ContentsOfURLWithFallback(album['thumb'], R(ICON))
