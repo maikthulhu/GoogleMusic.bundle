@@ -110,7 +110,7 @@ def PlaylistList():
     try:
         playlists = api.get_all_playlist_ids()
     except:
-	if GMusic_Authenticated():
+	if GMusic_Authenticate():
             playlists = api.get_all_playlist_ids()
 	else:
 	    Log("LOGIN FAILURE")
@@ -129,7 +129,7 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 	try:
 	    songs = api.get_playlist_songs(playlist_id)
 	except:
-	    if GMusic_Authenticated():
+	    if GMusic_Authenticate():
 	        songs = api.get_playlist_songs(playlist_id)
 	    else:
 		Log("LOGIN FAILURE")
@@ -138,7 +138,7 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 	try:
 	    songs = api.get_all_songs()
 	except:
-	    if GMusic_Authenticated():
+	    if GMusic_Authenticate():
 	        songs = api.get_all_songs()
             else:
 		Log("LOGIN FAILURE")
@@ -164,7 +164,7 @@ def ArtistList():
     try:
         songs = api.get_all_songs()
     except:
-	if GMusic_Authenticated():
+	if GMusic_Authenticate():
 	    songs = api.get_all_songs()
 	else:
 	    Log("LOGIN FAILURE")
@@ -205,7 +205,7 @@ def AlbumList():
     try:
         songs = api.get_all_songs()
     except:
-	if GMusic_Authenticated():
+	if GMusic_Authenticate():
 	    songs = api.get_all_songs()
 	else:
 	    Log("LOGIN FAILURE")
