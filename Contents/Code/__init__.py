@@ -46,9 +46,9 @@ def MainMenu():
         oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
         oc.add(DirectoryObject(key=Callback(ArtistList), title=L('Artists')))
         oc.add(DirectoryObject(key=Callback(AlbumList), title=L('Albums')))
-        oc.add(DirectoryObject(key=Callback(SongList), title=L('Songs')))
-        oc.add(InputDirectoryObject(key=Callback(SearchResults), title=L('Search'), prompt=L('Search Prompt')))
-        oc.add(PrefsObject(title=L('Prefs Title Change')))
+#        oc.add(DirectoryObject(key=Callback(SongList), title=L('Songs')))
+#        oc.add(InputDirectoryObject(key=Callback(SearchResults), title=L('Search'), prompt=L('Search Prompt')))
+        oc.add(PrefsObject(title=L('Prefs Title')))
 
     return oc
 
@@ -71,10 +71,7 @@ def GMusic_Authenticate():
     except AlreadyLoggedIn:
 	authed = True
 
-    if authed:
-        return True
-    else:
-        return False
+    return authed
 
 def GetTrack(song):
     try:
@@ -247,10 +244,10 @@ def AlbumList():
 def SongList():
     return
 
+def SearchResults(query=None):
+    return
+
 def PlayAudio(song=None):
     song_url = api.get_stream_url(song['id'])
 
     return Redirect(song_url)
-
-def SearchResults(query=None):
-    return
