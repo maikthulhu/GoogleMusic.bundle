@@ -1,31 +1,30 @@
-""".. moduleauthor:: Simon Weber <sweb090@gmail.com>"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, Simon Weber
-# All rights reserved.
+from gmusicapi._version import __version__
 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the copyright holder nor the
-#       names of the contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
+__copyright__ = 'Copyright 2013 Simon Weber'
+__license__ = 'BSD 3-Clause'
+__title__ = 'gmusicapi'
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+from gmusicapi.clients import Webclient, Musicmanager
+from gmusicapi.exceptions import CallFailure
+
+# appease flake8: the imports are purposeful
+(__version__, Webclient, Musicmanager, CallFailure)
 
 
-from .api import Api, CallFailure
-
-__all__ = ['Api', 'CallFailure']
+class Api(object):
+    """Mock class used to signal gmusicapi.Api deprecation."""
+    def __init__(self):
+        # not using warnings because this change cannot be ignored
+        raise ImportError('gmusicapi.Api is deprecated; use gmusicapi.Webclient'
+                          ' or gmusicapi.Musicmanager instead.'
+                          '\n'
+                          'For help rewriting your code, see'
+                          ' https://unofficial-google-music-api.readthedocs.org/'
+                          'en/latest/usage.html#quickstart.'
+                          '\n'
+                          'For an explanation of why the change was made, see'
+                          ' https://github.com/simon-weber/'
+                          'Unofficial-Google-Music-API/issues/112.')
