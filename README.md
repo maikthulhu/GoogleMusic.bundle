@@ -10,9 +10,9 @@ The version of gmusicapi I'm currently using is quite outdated.  An attempt was 
 There are rumors of unifying the PMS plugin framework to 2.7+ across the board, but there is no ETA other than "soonish".
 
 Thus, the goals for this project as of now are thus:
-Focus on Windows and Linux development with the latest gmusicapi
-Hash out the plugin layout and core functionality
-Add Mac support using an older version of gmusicapi and attempt to make the differences transparent
-Once Plex unifies the plugin framework I will do the same with the plugin
+* Focus on Windows and Linux development with the latest gmusicapi
+* Hash out the plugin layout and core functionality
+* Add Mac support using an older version of gmusicapi and attempt to make the differences transparent
+* Once Plex unifies the plugin framework I will do the same with the plugin
 
-Current plugin status: *WORKING*
+Current plugin status: **WORKING**
