@@ -14,7 +14,7 @@ import urllib
 from uuid import getnode as getmac
 import webbrowser
 
-#import httplib2  # included with oauth2client
+import httplib2  # included with oauth2client
 from oauth2client.client import OAuth2WebServerFlow, TokenRevokeError
 import oauth2client.file
 
