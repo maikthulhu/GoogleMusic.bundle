@@ -1,4 +1,4 @@
-from gmusicapi.api import Webclient, AlreadyLoggedIn
+from gmusicapi import Webclient, AlreadyLoggedIn
 
 MUSIC_PREFIX = '/music/googlemusic'
 
@@ -106,11 +106,11 @@ def PlaylistList():
     try:
         playlists = api.get_all_playlist_ids()
     except:
-	if GMusic_Authenticate():
-        playlists = api.get_all_playlist_ids()
-    else:
-        Log("LOGIN FAILURE")
-        return
+        if GMusic_Authenticate():
+            playlists = api.get_all_playlist_ids()
+        else:
+            Log("LOGIN FAILURE")
+            return
 
     for name, id in playlists['user'].iteritems():
         oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id), title=name))
