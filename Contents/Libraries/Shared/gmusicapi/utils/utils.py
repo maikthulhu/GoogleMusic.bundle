@@ -15,7 +15,7 @@ import traceback
 
 from appdirs import AppDirs
 from decorator import decorator
-from google.protobuf.descriptor import FieldDescriptor
+#from google.protobuf.descriptor import FieldDescriptor
 
 from gmusicapi import __version__
 from gmusicapi.exceptions import CallFailure
@@ -35,11 +35,11 @@ _python_to_cpp_types = {
     str: ('string',),
 }
 
-cpp_type_to_python = dict(
-    (getattr(FieldDescriptor, 'CPPTYPE_' + cpp.upper()), python)
-    for (python, cpplist) in _python_to_cpp_types.items()
-    for cpp in cpplist
-)
+#cpp_type_to_python = dict(
+#    (getattr(FieldDescriptor, 'CPPTYPE_' + cpp.upper()), python)
+#    for (python, cpplist) in _python_to_cpp_types.items()
+#    for cpp in cpplist
+#)
 
 log_filepath = os.path.join(my_appdirs.user_log_dir, 'gmusicapi.log')
 printed_log_start_message = False  # global, set in config_debug_logging
@@ -260,37 +260,37 @@ def retry(retry_exception=None, tries=6, delay=2, backoff=2, logger=None):
     return retry_wrapper
 
 
-def pb_set(msg, field_name, val):
-    """Return True and set val to field_name in msg if the assignment
-    is type-compatible, else return False.
-
-    val will be coerced to a proper type if needed.
-
-    :param msg: an instance of a protobuf.message
-    :param field_name:
-    :param val
-    """
-
-    #Find the proper type.
-    field_desc = msg.DESCRIPTOR.fields_by_name[field_name]
-    proper_type = cpp_type_to_python[field_desc.cpp_type]
-
-    #Try with the given type first.
-    #Their set hooks will automatically coerce.
-    try_types = (type(val), proper_type)
-
-    for t in try_types:
-        log.debug("attempt %s.%s = %s(%r)", msg.__class__.__name__, field_name, t, val)
-        try:
-            setattr(msg, field_name, t(val))
-            log.debug("! success")
-            break
-        except (TypeError, ValueError):
-            log.debug("X failure")
-    else:
-        return False  # no assignments stuck
-
-    return True
+#def pb_set(msg, field_name, val):
+#    """Return True and set val to field_name in msg if the assignment
+#    is type-compatible, else return False.
+#
+#    val will be coerced to a proper type if needed.
+#
+#    :param msg: an instance of a protobuf.message
+#    :param field_name:
+#    :param val
+#    """
+#
+#    #Find the proper type.
+#    field_desc = msg.DESCRIPTOR.fields_by_name[field_name]
+#    proper_type = cpp_type_to_python[field_desc.cpp_type]
+#
+#    #Try with the given type first.
+#    #Their set hooks will automatically coerce.
+#    try_types = (type(val), proper_type)
+#
+#    for t in try_types:
+#        log.debug("attempt %s.%s = %s(%r)", msg.__class__.__name__, field_name, t, val)
+#        try:
+#            setattr(msg, field_name, t(val))
+#            log.debug("! success")
+#            break
+#        except (TypeError, ValueError):
+#            log.debug("X failure")
+#    else:
+#        return False  # no assignments stuck
+#
+#    return True
 
 
 def transcode_to_mp3(filepath, quality=3, slice_start=None, slice_duration=None):

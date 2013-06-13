@@ -6,7 +6,7 @@
 from collections import namedtuple
 import sys
 
-from google.protobuf.descriptor import FieldDescriptor
+#from google.protobuf.descriptor import FieldDescriptor
 
 import gmusicapi
 from gmusicapi.compat import json
@@ -272,45 +272,45 @@ class Call(object):
             trace = sys.exc_info()[2]
             raise ParseException(str(e)), None, trace
 
-    @staticmethod
-    def _filter_proto(msg, make_copy=True):
-        """Filter all byte fields in the message and submessages."""
-        filtered = msg
-        if make_copy:
-            filtered = msg.__class__()
-            filtered.CopyFrom(msg)
-
-        fields = filtered.ListFields()
-
-        #eg of filtering a specific field
-        #if any(fd.name == 'field_name' for fd, val in fields):
-        #    filtered.field_name = '<name>'
-
-        #Filter all byte fields.
-        for field_name, val in ((fd.name, val) for fd, val in fields
-                                if fd.type == FieldDescriptor.TYPE_BYTES):
-            setattr(filtered, field_name, "<%s bytes>" % len(val))
-
-        #Filter submessages.
-        for field in (val for fd, val in fields
-                      if fd.type == FieldDescriptor.TYPE_MESSAGE):
-
-            #protobuf repeated api is bad for reflection
-            is_repeated = hasattr(field, '__len__')
-
-            if not is_repeated:
-                Call._filter_proto(field, make_copy=False)
-
-            else:
-                for i in range(len(field)):
-                    #repeatedComposite does not allow setting
-                    old_fields = [f for f in field]
-                    del field[:]
-
-                    field.extend([Call._filter_proto(f, make_copy=False)
-                                  for f in old_fields])
-
-        return filtered
+#    @staticmethod
+#    def _filter_proto(msg, make_copy=True):
+#        """Filter all byte fields in the message and submessages."""
+#        filtered = msg
+#        if make_copy:
+#            filtered = msg.__class__()
+#            filtered.CopyFrom(msg)
+#
+#        fields = filtered.ListFields()
+#
+#        #eg of filtering a specific field
+#        #if any(fd.name == 'field_name' for fd, val in fields):
+#        #    filtered.field_name = '<name>'
+#
+#        #Filter all byte fields.
+#        for field_name, val in ((fd.name, val) for fd, val in fields
+#                                if fd.type == FieldDescriptor.TYPE_BYTES):
+#            setattr(filtered, field_name, "<%s bytes>" % len(val))
+#
+#        #Filter submessages.
+#        for field in (val for fd, val in fields
+#                      if fd.type == FieldDescriptor.TYPE_MESSAGE):
+#
+#            #protobuf repeated api is bad for reflection
+#            is_repeated = hasattr(field, '__len__')
+#
+#            if not is_repeated:
+#                Call._filter_proto(field, make_copy=False)
+#
+#            else:
+#                for i in range(len(field)):
+#                    #repeatedComposite does not allow setting
+#                    old_fields = [f for f in field]
+#                    del field[:]
+#
+#                    field.extend([Call._filter_proto(f, make_copy=False)
+#                                  for f in old_fields])
+#
+#        return filtered
 
 
 class ClientLogin(Call):
