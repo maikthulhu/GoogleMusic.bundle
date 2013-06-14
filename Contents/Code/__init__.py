@@ -1,10 +1,6 @@
 from gmusicapi import Webclient
 from gmusicapi.exceptions import AlreadyLoggedIn
 
-MUSIC_PREFIX = '/music/googlemusic'
-
-NAME = L('Title')
-
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
@@ -12,10 +8,10 @@ api = Webclient()
 ################################################################################
 
 def Start():
-    Plugin.AddPrefixHandler(MUSIC_PREFIX, MainMenu, NAME, ICON, ART)
+    Plugin.AddPrefixHandler('/music/googlemusic', MainMenu, NAME, ICON, ART)
 
     ObjectContainer.art = R(ART)
-    ObjectContainer.title1 = NAME
+    ObjectContainer.title1 = L('Title')
 
     DirectoryObject.thumb = R(ICON)
 
