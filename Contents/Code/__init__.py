@@ -1,4 +1,5 @@
-from gmusicapi import Webclient, AlreadyLoggedIn
+from gmusicapi import Webclient
+from gmusicapi.exceptions import AlreadyLoggedIn
 
 MUSIC_PREFIX = '/music/googlemusic'
 
