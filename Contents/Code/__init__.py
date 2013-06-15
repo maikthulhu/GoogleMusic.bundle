@@ -55,6 +55,18 @@ class GMusicObject(object):
 
         return self.playlists
 
+    def get_stream_url(self, song_id):
+        try:
+            stream_url = my_client.webclient.get_stream_url(song_id)
+        except NotLoggedIn:
+            if self.authenticate():
+                stream_url = my_client.webclient.get_stream_url(song_id)
+            else:
+                Log("LOGIN FAILURE")
+                return
+
+        return stream_url
+
 my_client = GMusicObject()
 
 def Start():
@@ -233,6 +245,6 @@ def SearchResults(query=None):
     return
 
 def PlayAudio(song=None):
-    song_url = api.get_stream_url(song['id'])
+    song_url = my_client.get_stream_url(song['id'])
 
     return Redirect(song_url)
