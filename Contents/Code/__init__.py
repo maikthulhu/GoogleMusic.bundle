@@ -1,14 +1,64 @@
 from gmusicapi import Webclient
-from gmusicapi.exceptions import AlreadyLoggedIn
+from gmusicapi.exceptions import AlreadyLoggedIn, NotLoggedIn
 
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
-api = Webclient()
 ################################################################################
 
+class GMusicObject(object):
+    webclient = None
+    authenticated = False
+    all_songs = list()
+    playlists = list()
+
+    email = None
+    password = None
+
+    def __init__(self):
+        self.webclient = Webclient()
+
+    def authenticate(self, email=None, password=None):
+        if email:
+            self.email = email
+        if password:
+            self.password = password
+
+        try:
+            self.authenticated = self.webclient.login(self.email, self.password)
+        except AlreadyLoggedIn:
+            self.authenticated = True
+
+        return self.authenticated
+
+    def get_all_songs(self):
+        try:
+            self.all_songs = self.webclient.get_all_songs()
+        except NotLoggedIn:
+            if self.authenticate():
+                self.all_songs = self.webclient.get_all_songs()
+            else:
+                Log("LOGIN FAILURE")
+                return
+
+        return self.all_songs
+
+    def get_all_playlists(self):
+        try:
+            self.playlists = self.webclient.get_all_playlist_ids()
+        except NotLoggedIn:
+            if self.authenticate():
+                self.playlists = self.webclient.get_all_playlist_ids()
+            else:
+                Log("LOGIN FAILURE")
+                return
+
+        return self.playlists
+
+my_client = GMusicObject()
+
 def Start():
-    Plugin.AddPrefixHandler('/music/googlemusic', MainMenu, NAME, ICON, ART)
+    Plugin.AddPrefixHandler('/music/googlemusic', MainMenu, L('Title'), ICON, ART)
 
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = L('Title')
@@ -21,23 +71,9 @@ def ValidatePrefs():
 def MainMenu():
     oc = ObjectContainer()
 
-    # Borrowed menu display based on prefs/auth from Pandora plugin
-    # https://github.com/plexinc-plugins/Pandora.bundle/
-    if 'GMusicConnection' not in Dict:
-        Dict['GMusicConnection'] = {}
-
     if not Prefs['email'] or not Prefs['password']:
         oc.add(PrefsObject(title=L('Prefs Title')))
-        return oc
-    elif 'authed' in Dict['GMusicConnection']:
-        if Dict['GMusicConnection']['authed']:
-            authed = Dict['GMusicConnection']['authed']
-        else:
-            authed = GMusic_Authenticate()
-    else:
-        authed = GMusic_Authenticate()
-
-    if not authed:
+    elif not my_client.authenticate(Prefs['email'], Prefs['password']):
         oc.add(PrefsObject(title=L('Prefs Title'), summary=L('Bad Password')))
     else:
         oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
@@ -49,32 +85,12 @@ def MainMenu():
 
     return oc
 
-#def authenticated(func):
-#    def wrapper():
-#	try:
-#	    func()
-#	except:
-#	    if GMusic_Authenticate():
-#		func()
-#	    else:
-#		Log("RE-LOGIN FAILURE")
-#    return wrapper
-
-def GMusic_Authenticate():
-    global api
-
-    try:
-        authed = api.login(Prefs['email'], Prefs['password'])
-    except AlreadyLoggedIn:
-	authed = True
-
-    return authed
-
 def GetTrack(song):
     try:
-	album_art_url = 'http:%s' % song['albumArtUrl']
+        album_art_url = 'http:%s' % song['albumArtUrl']
     except:
-	album_art_url = None
+
+        album_art_url = None
 
     track = TrackObject(
         key = song['id'],
@@ -100,16 +116,7 @@ def GetTrack(song):
 def PlaylistList():
     oc = ObjectContainer()
 
-    try:
-        playlists = api.get_all_playlist_ids()
-    except:
-        if GMusic_Authenticate():
-            playlists = api.get_all_playlist_ids()
-        else:
-            Log("LOGIN FAILURE")
-            return
-
-    for name, id in playlists['user'].iteritems():
+    for name, id in myclient.get_all_playlists().iteritems():
         oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id), title=name))
 
     return oc
@@ -118,23 +125,9 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
     oc = ObjectContainer()
 
     if playlist_id:
-        try:
-            songs = api.get_playlist_songs(playlist_id)
-        except:
-            if GMusic_Authenticate():
-                songs = api.get_playlist_songs(playlist_id)
-            else:
-                Log("LOGIN FAILURE")
-                return
+        songs = my_client.webclient.get_playlist_songs(playlist_id)
     else:
-        try:
-            songs = api.get_all_songs()
-        except:
-            if GMusic_Authenticate():
-                songs = api.get_all_songs()
-            else:
-                Log("LOGIN FAILURE")
-                return
+        songs = my_client.get_all_songs()
 
     for song in songs:
         if artist and song['artist'].lower() != artist:
@@ -152,14 +145,7 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 def ArtistList():
     oc = ObjectContainer()
 
-    try:
-        songs = api.get_all_songs()
-    except:
-        if GMusic_Authenticate():
-            songs = api.get_all_songs()
-        else:
-            Log("LOGIN FAILURE")
-            return
+    songs = my_client.get_all_songs()
 
     artists = list()
 
@@ -171,13 +157,13 @@ def ArtistList():
                 break
         if not found:
             artists.append({
-                'name_norm': song['artistNorm'],
+                'name_norm': song['artistNorm']	,
                 'name': song['artist'],
             })
 
     for artist in artists:
         oc.add(ArtistObject(
-            key = Callback(GetTrackList, artist=artist['name_norm']),
+            key = Callback(ShowArtistOptions, artist=artist['name_norm']),
             rating_key = artist['name_norm'],
             title = artist['name']
             # number of tracks by artist
@@ -189,21 +175,24 @@ def ArtistList():
 
     return oc
 
-def AlbumList():
+def ShowArtistOptions(artist):
+    oc = ObjectContainer()
+    oc.add(DirectoryObject(key=Callback(PlayArtistTracks, artist=artist), title=L('All Songs')))
+    oc.add(DirectoryObject(key=Callback(AlbumList, artist=artist), title=L('Albums')))
+    oc.add(DirectoryObject(key=Callback(GetTrackList, artist=artist), title=L('Songs')))
+
+    return oc
+
+def AlbumList(artist=None):
     oc = ObjectContainer()
 
-    try:
-        songs = api.get_all_songs()
-    except:
-        if GMusic_Authenticate():
-            songs = api.get_all_songs()
-        else:
-            Log("LOGIN FAILURE")
-            return
+    songs = my_client.get_all_songs() # TODO: Consider returning filtered list from GMusicObject class
 
     albums = list()
 
     for song in songs:
+        if artist and song['artistNorm'] != artist:
+            continue
         found = False
         for album in albums:
             if song['album'] == '' or song['albumNorm'] in album.itervalues():
@@ -233,6 +222,9 @@ def AlbumList():
     oc.objects.sort(key=lambda obj: obj.title)
 
     return oc
+
+def PlayArtistTracks(artist):
+    return
 
 def SongList():
     return
