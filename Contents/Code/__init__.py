@@ -206,9 +206,8 @@ def ArtistList():
 @route('/music/googlemusic/artists/options', artist=str)
 def ShowArtistOptions(artist):
     oc = ObjectContainer()
-    oc.add(DirectoryObject(key=Callback(PlayArtistTracks, artist=artist), title=L('All Songs')))
     oc.add(DirectoryObject(key=Callback(AlbumList, artist=artist), title=L('Albums')))
-    oc.add(DirectoryObject(key=Callback(GetTrackList, artist=artist), title=L('Songs')))
+    oc.add(DirectoryObject(key=Callback(GetTrackList, artist=artist), title=L('All Songs')))
 
     return oc
 
@@ -253,10 +252,6 @@ def AlbumList(artist=None):
     oc.objects.sort(key=lambda obj: obj.title)
 
     return oc
-
-@route('/music/googlemusic/artists/playall', artist=str)
-def PlayArtistTracks(artist):
-    return
 
 @route('/music/googlemusic/songs')
 def SongList():
