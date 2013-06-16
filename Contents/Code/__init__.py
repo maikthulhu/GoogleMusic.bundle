@@ -6,17 +6,14 @@ ICON = 'icon-default.png'
 
 ################################################################################
 
-class GMusicObject(object):
-    webclient = None
-    authenticated = False
-    all_songs = list()
-    playlists = list()
-
-    email = None
-    password = None
-
+class GMusic(object):
     def __init__(self):
         self.webclient = Webclient()
+        self.email = None
+        self.password = None
+        self.authenticated = False
+        self.all_songs = list()
+        self.playlists = list()
 
     def authenticate(self, email=None, password=None):
         if email:
@@ -25,9 +22,11 @@ class GMusicObject(object):
             self.password = password
 
         try:
+            Log("AUTHENTICATING!!!!111 : " + self.email + "," + self.password)
             self.authenticated = self.webclient.login(self.email, self.password)
         except AlreadyLoggedIn:
             self.authenticated = True
+
 
         return self.authenticated
 
@@ -57,17 +56,15 @@ class GMusicObject(object):
 
     def get_stream_url(self, song_id):
         try:
-            stream_url = my_client.webclient.get_stream_url(song_id)
+            stream_url = self.webclient.get_stream_url(song_id)
         except NotLoggedIn:
             if self.authenticate():
-                stream_url = my_client.webclient.get_stream_url(song_id)
+                stream_url = self.webclient.get_stream_url(song_id)
             else:
                 Log("LOGIN FAILURE")
                 return
 
         return stream_url
-
-my_client = GMusicObject()
 
 def Start():
     Plugin.AddPrefixHandler('/music/googlemusic', MainMenu, L('Title'), ICON, ART)
@@ -85,7 +82,10 @@ def MainMenu():
 
     if not Prefs['email'] or not Prefs['password']:
         oc.add(PrefsObject(title=L('Prefs Title')))
-    elif not my_client.authenticate(Prefs['email'], Prefs['password']):
+        return oc
+
+    gmusic = GMusicObject()
+    if not gmusic:
         oc.add(PrefsObject(title=L('Prefs Title'), summary=L('Bad Password')))
     else:
         oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
@@ -97,11 +97,22 @@ def MainMenu():
 
     return oc
 
-def GetTrack(song):
+def GMusicObject():
+    gmusic = GMusic()
+    authed = gmusic.authenticate(Prefs['email'], Prefs['password'])
+    if authed:
+        return gmusic
+    else:
+        return None
+
+@route('/music/googlemusic/gettrack', song=dict, gmusic=object)
+def GetTrack(song, gmusic=None):
+    if not gmusic:
+        gmusic = GMusicObject()
+
     try:
         album_art_url = 'http:%s' % song['albumArtUrl']
     except:
-
         album_art_url = None
 
     track = TrackObject(
@@ -125,6 +136,7 @@ def GetTrack(song):
 
     return track
 
+@route('/music/googlemusic/playlists')
 def PlaylistList():
     oc = ObjectContainer()
 
@@ -133,20 +145,22 @@ def PlaylistList():
 
     return oc
 
+@route('/music/googlemusic/gettracklist', playlist_id=str, artist=str, album=str, query=str)
 def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
+    gmusic = GMusicObject()
     oc = ObjectContainer()
 
     if playlist_id:
-        songs = my_client.webclient.get_playlist_songs(playlist_id)
+        songs = gmusic.webclient.get_playlist_songs(playlist_id)
     else:
-        songs = my_client.get_all_songs()
+        songs = gmusic.get_all_songs()
 
     for song in songs:
         if artist and song['artist'].lower() != artist:
             continue
         if album and song['album'].lower() != album:
             continue
-        track = GetTrack(song)
+        track = GetTrack(song, gmusic)
         oc.add(track)
 
 #    oc.objects.sort(key=lambda obj: (obj.album, obj.disc, obj.index))
@@ -154,10 +168,12 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 
     return oc
 
+@route('/music/googlemusic/artists')
 def ArtistList():
+    gmusic = GMusicObject()
     oc = ObjectContainer()
 
-    songs = my_client.get_all_songs()
+    songs = gmusic.get_all_songs()
 
     artists = list()
 
@@ -187,6 +203,7 @@ def ArtistList():
 
     return oc
 
+@route('/music/googlemusic/artists/options', artist=str)
 def ShowArtistOptions(artist):
     oc = ObjectContainer()
     oc.add(DirectoryObject(key=Callback(PlayArtistTracks, artist=artist), title=L('All Songs')))
@@ -195,10 +212,12 @@ def ShowArtistOptions(artist):
 
     return oc
 
+@route('/music/googlemusic/albums', artist=str)
 def AlbumList(artist=None):
+    gmusic = GMusicObject()
     oc = ObjectContainer()
 
-    songs = my_client.get_all_songs() # TODO: Consider returning filtered list from GMusicObject class
+    songs = gmusic.get_all_songs() # TODO: Consider returning filtered list from GMusic class
 
     albums = list()
 
@@ -235,16 +254,21 @@ def AlbumList(artist=None):
 
     return oc
 
+@route('/music/googlemusic/artists/playall', artist=str)
 def PlayArtistTracks(artist):
     return
 
+@route('/music/googlemusic/songs')
 def SongList():
     return
 
+@route('/music/googlemusic/search', query=str)
 def SearchResults(query=None):
     return
 
+@route('/music/googlemusic/songs/play', song=dict)
 def PlayAudio(song=None):
-    song_url = my_client.get_stream_url(song['id'])
+    gmusic = GMusicObject()
+    song_url = gmusic.get_stream_url(song['id'])
 
     return Redirect(song_url)
