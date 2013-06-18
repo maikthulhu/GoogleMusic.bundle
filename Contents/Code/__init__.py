@@ -1,3 +1,5 @@
+import random
+
 from gmusicapi import Webclient
 from gmusicapi.exceptions import AlreadyLoggedIn, NotLoggedIn
 
@@ -22,7 +24,7 @@ class GMusic(object):
             self.password = password
 
         try:
-            Log("AUTHENTICATING!!!!111 : " + self.email + "," + self.password)
+            Log("AUTHENTICATING!!!!111")
             self.authenticated = self.webclient.login(self.email, self.password)
         except AlreadyLoggedIn:
             self.authenticated = True
@@ -89,9 +91,9 @@ def MainMenu():
         oc.add(PrefsObject(title=L('Prefs Title'), summary=L('Bad Password')))
     else:
         oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
+        oc.add(DirectoryObject(key=Callback(SongList), title=L('Shuffle All')))
         oc.add(DirectoryObject(key=Callback(ArtistList), title=L('Artists')))
         oc.add(DirectoryObject(key=Callback(AlbumList), title=L('Albums')))
-#        oc.add(DirectoryObject(key=Callback(SongList), title=L('Songs')))
 #        oc.add(InputDirectoryObject(key=Callback(SearchResults), title=L('Search'), prompt=L('Search Prompt')))
         oc.add(PrefsObject(title=L('Prefs Title')))
 
@@ -123,7 +125,7 @@ def GetTrack(song, gmusic=None):
         #disc = song.get('disc', 0),
         artist = song['artist'],
         duration = song['durationMillis'],
-        index = song['track'],
+        index = song.get('track', 0),
         thumb = Resource.ContentsOfURLWithFallback(album_art_url, R(ICON)),
         items = [
             MediaObject(
@@ -255,7 +257,11 @@ def AlbumList(artist=None):
 
 @route('/music/googlemusic/songs')
 def SongList():
-    return
+    oc = GetTrackList()
+
+    random.shuffle(oc.objects)
+
+    return oc
 
 @route('/music/googlemusic/search', query=str)
 def SearchResults(query=None):
