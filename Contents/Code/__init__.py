@@ -10,7 +10,7 @@ ICON = 'icon-default.png'
 
 class GMusic(object):
     def __init__(self):
-        self.webclient = Webclient()
+        self.webclient = Webclient(debug_logging=False)
         self.email = None
         self.password = None
         self.authenticated = False
@@ -140,10 +140,12 @@ def GetTrack(song, gmusic=None):
 
 @route('/music/googlemusic/playlists')
 def PlaylistList():
+    gmusic = GMusicObject()
     oc = ObjectContainer(title2=L('Playlists'))
 
-    for name, id in myclient.get_all_playlists().iteritems():
-        oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id, playlist_name=name), title=name))
+    for name, ids in gmusic.webclient.get_all_playlist_ids()['user'].iteritems():
+        for id in ids:
+            oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id, playlist_name=name), title=name))
 
     return oc
 
@@ -165,6 +167,7 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album=None, 
     oc = ObjectContainer(title2=t2)
 
     if playlist_id:
+        Log('PLAYLIST_ID : ' + playlist_id)
         songs = gmusic.webclient.get_playlist_songs(playlist_id)
     else:
         songs = gmusic.get_all_songs()
