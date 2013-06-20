@@ -140,17 +140,29 @@ def GetTrack(song, gmusic=None):
 
 @route('/music/googlemusic/playlists')
 def PlaylistList():
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2=L('Playlists'))
 
     for name, id in myclient.get_all_playlists().iteritems():
-        oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id), title=name))
+        oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id, playlist_name=name), title=name))
 
     return oc
 
 @route('/music/googlemusic/gettracklist', playlist_id=str, artist=str, album=str, query=str)
-def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
+def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album=None, query=None):
     gmusic = GMusicObject()
-    oc = ObjectContainer()
+
+    t2 = L('Songs')
+    if artist:
+        t2 = artist.title()
+        if album:
+            t2 = t2 + ' - ' + album.title()
+        t2 = t2 + ' - ' + L('Songs')
+    elif album:
+        t2 = album.title() + ' - ' + t2
+    elif playlist_name:
+       t2 = playlist_name.title() + ' - ' + t2
+
+    oc = ObjectContainer(title2=t2)
 
     if playlist_id:
         songs = gmusic.webclient.get_playlist_songs(playlist_id)
@@ -173,7 +185,7 @@ def GetTrackList(playlist_id=None, artist=None, album=None, query=None):
 @route('/music/googlemusic/artists')
 def ArtistList():
     gmusic = GMusicObject()
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2=L('Artists'))
 
     songs = gmusic.get_all_songs()
 
@@ -207,7 +219,7 @@ def ArtistList():
 
 @route('/music/googlemusic/artists/options', artist=str)
 def ShowArtistOptions(artist):
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2=artist.title())
     oc.add(DirectoryObject(key=Callback(AlbumList, artist=artist), title=L('Albums')))
     oc.add(DirectoryObject(key=Callback(GetTrackList, artist=artist), title=L('All Songs')))
 
@@ -216,7 +228,12 @@ def ShowArtistOptions(artist):
 @route('/music/googlemusic/albums', artist=str)
 def AlbumList(artist=None):
     gmusic = GMusicObject()
-    oc = ObjectContainer()
+    t2 = L('Albums')
+
+    if artist:
+        t2 = artist.title() + ' - ' + t2
+
+    oc = ObjectContainer(title2=t2)
 
     songs = gmusic.get_all_songs() # TODO: Consider returning filtered list from GMusic class
 
