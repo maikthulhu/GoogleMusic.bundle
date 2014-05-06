@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """Calls made by the Music Manager (related to uploading)."""
@@ -253,7 +252,9 @@ class UploadMetadata(MmCall):
             date_val = str(audio['date'][0])
             try:
                 datetime = dateutil.parser.parse(date_val, fuzzy=True)
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
+                # TypeError provides compatibility with:
+                #  https://bugs.launchpad.net/dateutil/+bug/1247643
                 log.warning("could not parse date md for '%s': (%s)", filepath, e)
             else:
                 track_set('year', datetime.year)

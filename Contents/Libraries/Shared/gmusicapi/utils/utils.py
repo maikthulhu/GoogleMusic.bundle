@@ -1,8 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """Utility functions used across api code."""
 
+from bisect import bisect_left
 import errno
 import functools
 import inspect
@@ -13,19 +13,17 @@ import subprocess
 import time
 import traceback
 
-from appdirs import AppDirs
 from decorator import decorator
-#from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.descriptor import FieldDescriptor
 
 from gmusicapi import __version__
+from gmusicapi.compat import my_appdirs
 from gmusicapi.exceptions import CallFailure
 
 # this controls the crazy logging setup that checks the callstack;
 #  it should be monkey-patched to False after importing to disable it.
 # when False, static code will simply log in the standard way under the root.
 per_client_logging = True
-
-my_appdirs = AppDirs('gmusicapi', 'Simon Weber')
 
 #Map descriptor.CPPTYPE -> python type.
 _python_to_cpp_types = {
@@ -35,11 +33,11 @@ _python_to_cpp_types = {
     str: ('string',),
 }
 
-#cpp_type_to_python = dict(
-#    (getattr(FieldDescriptor, 'CPPTYPE_' + cpp.upper()), python)
-#    for (python, cpplist) in _python_to_cpp_types.items()
-#    for cpp in cpplist
-#)
+cpp_type_to_python = dict(
+    (getattr(FieldDescriptor, 'CPPTYPE_' + cpp.upper()), python)
+    for (python, cpplist) in _python_to_cpp_types.items()
+    for cpp in cpplist
+)
 
 log_filepath = os.path.join(my_appdirs.user_log_dir, 'gmusicapi.log')
 printed_log_start_message = False  # global, set in config_debug_logging
@@ -47,6 +45,121 @@ printed_log_start_message = False  # global, set in config_debug_logging
 # matches a mac address in GM form, eg
 #   00:11:22:33:AA:BB
 _mac_pattern = re.compile("^({pair}:){{5}}{pair}$".format(pair='[0-9A-F]' * 2))
+
+
+class DynamicClientLogger(object):
+    """Dynamically proxies to the logger of a Client higher in the call stack.
+
+    This is a ridiculous hack needed because
+    logging is, in the eyes of a user, per-client.
+
+    So, logging from static code (eg protocol, utils) needs to log using the
+    config of the calling client's logger.
+
+    There can be multiple clients, so we can't just use a globally-available
+    logger.
+
+    Instead of refactoring every function to receieve a logger, we introspect
+    the callstack at runtime to figure out who's calling us, then use their
+    logger.
+
+    This probably won't work on non-CPython implementations.
+    """
+
+    def __init__(self, caller_name):
+        self.caller_name = caller_name
+
+    def __getattr__(self, name):
+        # this isn't a totally foolproof way to proxy, but it's fine for
+        # the usual logger.debug, etc methods.
+
+        logger = logging.getLogger(self.caller_name)
+
+        if per_client_logging:
+            # search upwards for a client instance
+            for frame_rec in inspect.getouterframes(inspect.currentframe()):
+                frame = frame_rec[0]
+
+                try:
+                    if 'self' in frame.f_locals:
+                        f_self = frame.f_locals['self']
+
+                        # can't import and check against classes; that causes an import cycle
+                        if ((f_self is not None and
+                             f_self.__module__.startswith('gmusicapi.clients') and
+                             f_self.__class__.__name__ in ('Musicmanager', 'Webclient',
+                                                           'Mobileclient'))):
+                            logger = f_self.logger
+                            break
+                finally:
+                    del frame  # avoid circular references
+
+            else:
+                # log to root logger.
+                # should this be stronger? There's no default root logger set up.
+                stack = traceback.extract_stack()
+                logger.info('could not locate client caller in stack:\n%s',
+                            '\n'.join(traceback.format_list(stack)))
+
+        return getattr(logger, name)
+
+
+log = DynamicClientLogger(__name__)
+
+
+def longest_increasing_subseq(seq):
+    """Returns the longest (non-contiguous) subsequence
+    of seq that is strictly increasing.
+    """
+    # adapted from http://goo.gl/lddm3c
+    if not seq:
+        return []
+
+    # head[j] = index in 'seq' of the final member of the best subsequence
+    # of length 'j + 1' yet found
+    head = [0]
+    # predecessor[j] = linked list of indices of best subsequence ending
+    # at seq[j], in reverse order
+    predecessor = [-1]
+    for i in xrange(1, len(seq)):
+        ## Find j such that:  seq[head[j - 1]] < seq[i] <= seq[head[j]]
+        ## seq[head[j]] is increasing, so use binary search.
+        j = bisect_left([seq[head[idx]] for idx in xrange(len(head))], seq[i])
+
+        if j == len(head):
+            head.append(i)
+        if seq[i] < seq[head[j]]:
+            head[j] = i
+
+        predecessor.append(head[j - 1] if j > 0 else -1)
+
+    ## trace subsequence back to output
+    result = []
+    trace_idx = head[-1]
+    while (trace_idx >= 0):
+        result.append(seq[trace_idx])
+        trace_idx = predecessor[trace_idx]
+
+    return result[::-1]
+
+
+def id_or_nid(song_dict):
+    """Equivalent to ``d.get('id') or d['nid']``.
+
+    Uploaded songs have an id key, while AA tracks
+    have a nid key, which can often be used interchangably.
+    """
+
+    return song_dict.get('id') or song_dict['nid']
+
+
+def datetime_to_microseconds(dt):
+    """Return microseconds since epoch, as an int.
+
+    :param dt: a datetime.datetime
+
+    """
+    return int(time.mktime(dt.timetuple()) * 1000000) + dt.microsecond
 
 
 def is_valid_mac(mac_string):
@@ -119,60 +232,6 @@ class DocstringInheritMeta(type):
         return type.__new__(meta, name, bases, clsdict)
 
 
-class DynamicClientLogger(object):
-    """Dynamically proxies to the logger of a Client higher in the call stack.
-
-    This is a ridiculous hack needed because
-    logging is, in the eyes of a user, per-client.
-
-    So, logging from static code (eg protocol, utils) needs to log using the
-    config of the calling client's logger.
-
-    There can be multiple clients, so we can't just use a globally-available
-    logger.
-
-    Instead of refactoring every function to receieve a logger, we introspect
-    the callstack at runtime to figure out who's calling us, then use their
-    logger.
-
-    This probably won't work on non-CPython implementations.
-    """
-
-    def __init__(self, caller_name):
-        self.caller_name = caller_name
-
-    def __getattr__(self, name):
-        # this isn't a totally foolproof way to proxy, but it's fine for
-        # the usual logger.debug, etc methods.
-
-        logger = logging.getLogger(self.caller_name)
-
-        if per_client_logging:
-            # search upwards for a client instance
-            for frame_rec in inspect.getouterframes(inspect.currentframe()):
-                frame = frame_rec[0]
-
-                try:
-                    if 'self' in frame.f_locals:
-                        f_self = frame.f_locals['self']
-                        if ((f_self.__module__ == 'gmusicapi.clients' and
-                             type(f_self).__name__ in ('Musicmanager', 'Webclient'))):
-                            logger = f_self.logger
-                            break
-                finally:
-                    del frame  # avoid circular references
-
-            else:
-                stack = traceback.extract_stack()
-                logger.info('could not locate client caller in stack:\n%s',
-                            '\n'.join(traceback.format_list(stack)))
-
-        return getattr(logger, name)
-
-
-log = DynamicClientLogger(__name__)
-
-
 def dual_decorator(func):
     """This is a decorator that converts a paramaterized decorator for no-param use.
 
@@ -188,40 +247,89 @@ def dual_decorator(func):
     return inner
 
 
+@dual_decorator
+def enforce_id_param(position=1):
+    """Verifies that the caller is passing a single song id, and not
+    a song dictionary.
+
+    :param position: (optional) the position of the expected id - defaults to 1.
+    """
+
+    @decorator
+    def wrapper(function, *args, **kw):
+
+        if not isinstance(args[position], basestring):
+            raise ValueError("Invalid param type in position %s;"
+                             " expected an id (did you pass a dictionary?)" % position)
+
+        return function(*args, **kw)
+
+    return wrapper
+
+
+@dual_decorator
+def enforce_ids_param(position=1):
+    """Verifies that the caller is passing a list of song ids, and not a
+    list of song dictionaries.
+
+    :param position: (optional) the position of the expected list - defaults to 1.
+    """
+
+    @decorator
+    def wrapper(function, *args, **kw):
+
+        if ((not isinstance(args[position], (list, tuple)) or
+             not all([isinstance(e, basestring) for e in args[position]]))):
+            raise ValueError("Invalid param type in position %s;"
+                             " expected ids (did you pass dictionaries?)" % position)
+
+        return function(*args, **kw)
+
+    return wrapper
+
+
 def configure_debug_log_handlers(logger):
-    """Warnings and above to stderr, below to gmusicapi.log.
+    """Warnings and above to stderr, below to gmusicapi.log when possible.
     Output includes line number."""
 
     global printed_log_start_message
 
     logger.setLevel(logging.DEBUG)
 
-    make_sure_path_exists(os.path.dirname(log_filepath), 0o700)
-    fh = logging.FileHandler(log_filepath)
-    fh.setLevel(logging.DEBUG)
+    logging_to_file = True
+    try:
+        make_sure_path_exists(os.path.dirname(log_filepath), 0o700)
+        debug_handler = logging.FileHandler(log_filepath)
+    except OSError:
+        logging_to_file = False
+        debug_handler = logging.StreamHandler()
 
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.WARNING)
+    debug_handler.setLevel(logging.DEBUG)
 
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    important_handler = logging.StreamHandler()
+    important_handler.setLevel(logging.WARNING)
+
+    logger.addHandler(debug_handler)
+    logger.addHandler(important_handler)
 
     if not printed_log_start_message:
         #print out startup message without verbose formatting
         logger.info("!-- begin debug log --!")
         logger.info("version: " + __version__)
-        logger.info("logging to: " + log_filepath)
+        if logging_to_file:
+            logger.info("logging to: " + log_filepath)
+
         printed_log_start_message = True
 
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s (%(module)s:%(lineno)s) [%(levelname)s]: %(message)s'
     )
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
+    debug_handler.setFormatter(formatter)
+    important_handler.setFormatter(formatter)
 
 
 @dual_decorator
-def retry(retry_exception=None, tries=6, delay=2, backoff=2, logger=None):
+def retry(retry_exception=None, tries=5, delay=2, backoff=2, logger=None):
     """Retry calling the decorated function using an exponential backoff.
 
     An exception from a final attempt will propogate.
@@ -260,42 +368,44 @@ def retry(retry_exception=None, tries=6, delay=2, backoff=2, logger=None):
     return retry_wrapper
 
 
-#def pb_set(msg, field_name, val):
-#    """Return True and set val to field_name in msg if the assignment
-#    is type-compatible, else return False.
-#
-#    val will be coerced to a proper type if needed.
-#
-#    :param msg: an instance of a protobuf.message
-#    :param field_name:
-#    :param val
-#    """
-#
-#    #Find the proper type.
-#    field_desc = msg.DESCRIPTOR.fields_by_name[field_name]
-#    proper_type = cpp_type_to_python[field_desc.cpp_type]
-#
-#    #Try with the given type first.
-#    #Their set hooks will automatically coerce.
-#    try_types = (type(val), proper_type)
-#
-#    for t in try_types:
-#        log.debug("attempt %s.%s = %s(%r)", msg.__class__.__name__, field_name, t, val)
-#        try:
-#            setattr(msg, field_name, t(val))
-#            log.debug("! success")
-#            break
-#        except (TypeError, ValueError):
-#            log.debug("X failure")
-#    else:
-#        return False  # no assignments stuck
-#
-#    return True
+def pb_set(msg, field_name, val):
+    """Return True and set val to field_name in msg if the assignment
+    is type-compatible, else return False.
+
+    val will be coerced to a proper type if needed.
+
+    :param msg: an instance of a protobuf.message
+    :param field_name:
+    :param val
+    """
+
+    #Find the proper type.
+    field_desc = msg.DESCRIPTOR.fields_by_name[field_name]
+    proper_type = cpp_type_to_python[field_desc.cpp_type]
+
+    #Try with the given type first.
+    #Their set hooks will automatically coerce.
+    try_types = (type(val), proper_type)
+
+    for t in try_types:
+        log.debug("attempt %s.%s = %s(%r)", msg.__class__.__name__, field_name, t, val)
+        try:
+            setattr(msg, field_name, t(val))
+            log.debug("! success")
+            break
+        except (TypeError, ValueError):
+            log.debug("X failure")
+    else:
+        return False  # no assignments stuck
+
+    return True
 
 
 def transcode_to_mp3(filepath, quality=3, slice_start=None, slice_duration=None):
     """Return the bytestring result of transcoding the file at *filepath* to mp3.
     An ID3 header is not included in the result.
+
+    Currently, avconv is required to be installed and in the path when using this.
 
     :param filepath: location of file
     :param quality: if int, pass to avconv -qscale. if string, pass to avconv -ab
@@ -338,14 +448,16 @@ def transcode_to_mp3(filepath, quality=3, slice_start=None, slice_duration=None)
             raise IOError  # handle errors in except
 
     except (OSError, IOError) as e:
-        log.exception('transcoding failure')
 
-        err_msg = "transcoding failed: %s. " % e
+        err_msg = "transcoding command (%s) failed: %s. " % (' '.join(cmd), e)
+
+        if 'No such file or directory' in str(e):
+            err_msg += '\navconv must be installed and in the system path.'
 
         if err_output is not None:
-            err_msg += "stderr: '%s'" % err_output
+            err_msg += "\nstderr: '%s'" % err_output
 
-        log.debug('full failure output: %s', err_output)
+        log.exception('transcoding failure:\n%s', err_msg)
 
         raise IOError(err_msg)
 
@@ -393,6 +505,7 @@ def truncate(x, max_els=100, recurse_levels=0):
     return x
 
 
+@dual_decorator
 def empty_arg_shortcircuit(return_code='[]', position=1):
     """Decorate a function to shortcircuit and return something immediately if
     the length of a positional arg is 0.

@@ -1,6 +1,6 @@
 import random
 
-from gmusicapi import Webclient
+from gmusicapi import Webclient, Mobileclient
 from gmusicapi.exceptions import AlreadyLoggedIn, NotLoggedIn
 
 ART = 'art-default.jpg'
@@ -11,9 +11,13 @@ ICON = 'icon-default.png'
 class GMusic(object):
     def __init__(self):
         self.webclient = Webclient(debug_logging=False)
+        self.mobileclient = Mobileclient(debug_logging=False)
         self.email = None
         self.password = None
+        self.mc_authenticated = False
+        self.wc_authenticated = False
         self.authenticated = False
+        self.device = None
         self.all_songs = list()
         self.playlists = list()
 
@@ -24,20 +28,27 @@ class GMusic(object):
             self.password = password
 
         try:
-            Log("AUTHENTICATING!!!!111")
-            self.authenticated = self.webclient.login(self.email, self.password)
+            Log("Authenticating mobileclient...")
+            self.mc_authenticated = self.mobileclient.login(self.email, self.password)
         except AlreadyLoggedIn:
-            self.authenticated = True
+            self.mc_authenticated = True
 
+        try:
+            Log("Authenticating webclient...")
+            self.wc_authenticated = self.webclient.login(self.email, self.password)
+        except AlreadyLoggedIn:
+            self.wc_authenticated = True
+
+        self.authenticated = self.mc_authenticated and self.wc_authenticated
 
         return self.authenticated
 
     def get_all_songs(self):
         try:
-            self.all_songs = self.webclient.get_all_songs()
+            self.all_songs = self.mobileclient.get_all_songs()
         except NotLoggedIn:
             if self.authenticate():
-                self.all_songs = self.webclient.get_all_songs()
+                self.all_songs = self.mobileclient.get_all_songs()
             else:
                 Log("LOGIN FAILURE")
                 return
@@ -46,10 +57,10 @@ class GMusic(object):
 
     def get_all_playlists(self):
         try:
-            self.playlists = self.webclient.get_all_playlist_ids()
+            self.playlists = self.mobileclient.get_all_playlist_ids()
         except NotLoggedIn:
             if self.authenticate():
-                self.playlists = self.webclient.get_all_playlist_ids()
+                self.playlists = self.mobileclient.get_all_playlist_ids()
             else:
                 Log("LOGIN FAILURE")
                 return
@@ -58,10 +69,10 @@ class GMusic(object):
 
     def get_stream_url(self, song_id):
         try:
-            stream_url = self.webclient.get_stream_url(song_id)
+            stream_url = self.mobileclient.get_stream_url(song_id)
         except NotLoggedIn:
             if self.authenticate():
-                stream_url = self.webclient.get_stream_url(song_id)
+                stream_url = self.mobileclient.get_stream_url(song_id)
             else:
                 Log("LOGIN FAILURE")
                 return
@@ -87,9 +98,11 @@ def MainMenu():
         return oc
 
     gmusic = GMusicObject()
-    if not gmusic:
+    if not gmusic and self.authenticated:       # No gmusic object but we did authenticated
+        oc.add(PrefsObject(title=L('Prefs Title'), summary=L('No mobile devices registered (registration not yet implemented.)')))
+    elif not gmusic:                            # No gmusic object (assume bad password)
         oc.add(PrefsObject(title=L('Prefs Title'), summary=L('Bad Password')))
-    else:
+    else:                                       # Gmusic object
         oc.add(DirectoryObject(key=Callback(PlaylistList), title=L('Playlists')))
         oc.add(DirectoryObject(key=Callback(SongList), title=L('Shuffle All')))
         oc.add(DirectoryObject(key=Callback(ArtistList), title=L('Artists')))
@@ -103,6 +116,13 @@ def GMusicObject():
     gmusic = GMusic()
     authed = gmusic.authenticate(Prefs['email'], Prefs['password'])
     if authed:
+        devices = gmusic.webclient.get_registered_devices()
+        for dev in devices:
+            if dev['type'] == 'PHONE':
+                gmusic.device = dev['id'][2:]     # Chop off 0x part of ID
+                break
+        if not gmusic.device:
+            return None
         return gmusic
     else:
         return None
@@ -143,7 +163,7 @@ def PlaylistList():
     gmusic = GMusicObject()
     oc = ObjectContainer(title2=L('Playlists'))
 
-    for name, ids in gmusic.webclient.get_all_playlist_ids()['user'].iteritems():
+    for name, ids in gmusic.mobileclient.get_all_playlist_ids()['user'].iteritems():
         for id in ids:
             oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id, playlist_name=name), title=name))
 
@@ -168,7 +188,7 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album=None, 
 
     if playlist_id:
         Log('PLAYLIST_ID : ' + playlist_id)
-        songs = gmusic.webclient.get_playlist_songs(playlist_id)
+        songs = gmusic.mobileclient.get_playlist_songs(playlist_id)
     else:
         songs = gmusic.get_all_songs()
 
@@ -290,6 +310,6 @@ def SearchResults(query=None):
 @route('/music/googlemusic/songs/play', song=dict)
 def PlayAudio(song=None):
     gmusic = GMusicObject()
-    song_url = gmusic.get_stream_url(song['id'])
+    song_url = gmusic.get_stream_url(song['id'], self.device)
 
     return Redirect(song_url)

@@ -1,11 +1,10 @@
-from collections import namedtuple
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
 Tests that don't hit the Google Music servers.
 """
 
+from collections import namedtuple
 import time
 
 from mock import MagicMock as Mock
@@ -19,6 +18,7 @@ import gmusicapi.session
 from gmusicapi.clients import Webclient, Musicmanager
 from gmusicapi.exceptions import AlreadyLoggedIn  # ,NotLoggedIn
 from gmusicapi.protocol.shared import authtypes
+from gmusicapi.protocol import mobileclient
 from gmusicapi.utils import utils
 
 
@@ -26,6 +26,16 @@ from gmusicapi.utils import utils
 
 #All tests end up in the local group.
 test = test(groups=['local'])
+
+
+@test
+def longest_increasing_sub():
+    lisi = utils.longest_increasing_subseq
+    assert_equal(lisi([]), [])
+    assert_equal(lisi(range(10, 0, -1)), [1])
+    assert_equal(lisi(range(10, 20)), range(10, 20))
+    assert_equal(lisi([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9]),
+                 [1, 2, 3, 5, 8, 9])
 
 ##
 # clients
@@ -167,6 +177,13 @@ def authtypes_factory_args():
     assert_true(auth.oauth)
     assert_false(auth.sso)
     assert_false(auth.xt)
+
+
+@test
+def mc_url_signing():
+    sig, _ = mobileclient.GetStreamUrl.get_signature("Tdr6kq3xznv5kdsphyojox6dtoq",
+                                                     "1373247112519")
+    assert_equal(sig, "gua1gInBdaVo7_dSwF9y0kodua0")
 
 
 ##
