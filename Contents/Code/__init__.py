@@ -217,19 +217,23 @@ def ArtistList():
     for song in songs:
         found = False
         for artist in artists:
-            if song['artist'] == '' or song['artistNorm'] in artist.itervalues():
+            # TODO: Consider using artistId
+            if song['artist'] == '' or song['artist'] in artist.itervalues():
                 found = True
                 break
         if not found:
             artists.append({
-                'name_norm': song['artistNorm']	,
+                #'name_norm': song['artistNorm']	,
+                'id': song['artistId'],
                 'name': song['artist'],
             })
 
     for artist in artists:
         oc.add(ArtistObject(
-            key = Callback(ShowArtistOptions, artist=artist['name_norm']),
-            rating_key = artist['name_norm'],
+            #key = Callback(ShowArtistOptions, artist=artist['name_norm']),
+            key = Callback(ShowArtistOptions, artist=artist['id']),
+            #rating_key = artist['name_norm'],
+            rating_key = artist['id'],
             title = artist['name']
             # number of tracks by artist
             # art?
@@ -263,16 +267,20 @@ def AlbumList(artist=None):
     albums = list()
 
     for song in songs:
-        if artist and song['artistNorm'] != artist:
+        # TODO: Consider using artistId
+        if artist and song['artist'] != artist:
             continue
         found = False
         for album in albums:
-            if song['album'] == '' or song['albumNorm'] in album.itervalues():
+            # TODO: Consider using albumId
+            if song['album'] == '' or song['album'] in album.itervalues():
                 found = True
                 break
         if not found:
+            print song['title']
             album = {
-                'title_norm': song['albumNorm'],
+                #'title_norm': song['albumNorm'],
+                'id': song.get('albumId', song['album']),
                 'title': song['album'],
                 'artist': song['artist'],
                 'thumb': song.get('albumArtUrl', None)
@@ -281,11 +289,12 @@ def AlbumList(artist=None):
                 album['thumb'] = "http:%s" % album['thumb']
             albums.append(album)
 
-    Log(len(albums))
     for album in albums:
         oc.add(AlbumObject(
-            key = Callback(GetTrackList, album=album['title_norm']),
-            rating_key = album['title_norm'],
+            #key = Callback(GetTrackList, album=album['title_norm']),
+            key = Callback(GetTrackList, album=album['id']),
+            #rating_key = album['title_norm'],
+            rating_key = album['id'],
             title = album['title'],
             artist = album['artist'],
             thumb = Resource.ContentsOfURLWithFallback(album['thumb'], R(ICON))
