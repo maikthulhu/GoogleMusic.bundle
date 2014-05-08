@@ -8,6 +8,14 @@ ICON = 'icon-default.png'
 
 ################################################################################
 
+################################################################################
+# class GMusic(object)                                                         #
+# Description: Class responsible for all operations and connection state       #
+#              tracking.                                                       # 
+# Inputs: none                                                                 #
+# Outputs: none                                                                #
+#                                                                              #
+################################################################################
 class GMusic(object):
     def __init__(self):
         self.webclient = Webclient(debug_logging=False)
@@ -21,6 +29,13 @@ class GMusic(object):
         self.all_songs = list()
         self.playlists = list()
 
+    ###########################################################################
+    # Name: authenticate()                                                    #
+    # Description: Attempts to authenticate class Mobileclient and Webclient  #
+    #              instances.                                                 #
+    # Inputs: login credentials: email, password                              #
+    # Outputs: returns True if both Mobileclient and Webclient auth is True   #
+    ###########################################################################
     def authenticate(self, email=None, password=None):
         if email:
             self.email = email
@@ -43,6 +58,12 @@ class GMusic(object):
 
         return self.authenticated
 
+    ###########################################################################
+    # Name: get_all_songs()                                                   #
+    # Description: Returns a list of all songs                                #
+    # Inputs: None                                                            #
+    # Outputs: A list of all the songs a user owns.                           #
+    ###########################################################################
     def get_all_songs(self):
         try:
             self.all_songs = self.mobileclient.get_all_songs()
@@ -170,17 +191,17 @@ def PlaylistList():
     return oc
 
 @route('/music/googlemusic/gettracklist', playlist_id=str, artist=str, album_id=str, query=str)
-def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=None, album_name=None, query=None):
+def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=None, query=None):
     gmusic = GMusicObject()
 
     t2 = L('Songs')
     if artist:
         t2 = artist.title()
-        if album_name:
-            t2 = t2 + ' - ' + album_name.title()
+        if album_id:
+            t2 = t2 + ' - ' + album_id.title()
         t2 = t2 + ' - ' + L('Songs')
-    elif album_name:
-        t2 = album_name.title() + ' - ' + t2
+    elif album_id:
+        t2 = album_id.title() + ' - ' + t2
     elif playlist_name:
        t2 = playlist_name.title() + ' - ' + t2
 
@@ -195,7 +216,7 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=Non
     for song in songs:
         if artist and song['artist'].lower() != artist:
             continue
-        if album_name and song['album'].lower() != album_name.lower():
+        if album_id and song['album'].lower() != album_id:
             continue
         track = GetTrack(song, gmusic)
         oc.add(track)
@@ -272,15 +293,12 @@ def AlbumList(artist=None):
             continue
         found = False
         for album in albums:
-            # TODO: Consider using albumId
             if song['album'] == '' or song['album'] in album.itervalues():
                 found = True
                 break
         if not found:
-            print song['title']
             album = {
-                #'title_norm': song['albumNorm'],
-                'id': song.get('albumId', song['album']),
+                'id': song['album'].lower(), # not every song has an albumId so this is the most reliable
                 'title': song['album'],
                 'artist': song['artist'],
                 'thumb': song.get('albumArtUrl', None)
@@ -291,9 +309,7 @@ def AlbumList(artist=None):
 
     for album in albums:
         oc.add(AlbumObject(
-            #key = Callback(GetTrackList, album=album['title_norm']),
-            key = Callback(GetTrackList, album_id=album['id'], album_name=album['title']),
-            #rating_key = album['title_norm'],
+            key = Callback(GetTrackList, album_id=album['id']),
             rating_key = album['id'],
             title = album['title'],
             artist = album['artist'],
