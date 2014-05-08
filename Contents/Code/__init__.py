@@ -184,9 +184,8 @@ def PlaylistList():
     gmusic = GMusicObject()
     oc = ObjectContainer(title2=L('Playlists'))
 
-    for name, ids in gmusic.mobileclient.get_all_playlist_ids()['user'].iteritems():
-        for id in ids:
-            oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=id, playlist_name=name), title=name))
+    for playlist in gmusic.mobileclient.get_all_playlists():
+        oc.add(DirectoryObject(key=Callback(GetTrackList, playlist_id=playlist['id'], playlist_name=playlist['name']), title=playlist['name']))
 
     return oc
 
@@ -209,7 +208,7 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=Non
 
     if playlist_id:
         Log('PLAYLIST_ID : ' + playlist_id)
-        songs = gmusic.mobileclient.get_playlist_songs(playlist_id)
+        songs = gmusic.mobileclient.get_all_user_playlist_contents()
     else:
         songs = gmusic.get_all_songs()
 
@@ -217,6 +216,8 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=Non
         if artist and song['artist'].lower() != artist:
             continue
         if album_id and song['album'].lower() != album_id:
+            continue
+        if playlist_id and song['playlistId'] != playlist_id:
             continue
         track = GetTrack(song, gmusic)
         oc.add(track)
@@ -244,16 +245,13 @@ def ArtistList():
                 break
         if not found:
             artists.append({
-                #'name_norm': song['artistNorm']	,
-                'id': song['artistId'],
+                'id': song['artist'].lower(),
                 'name': song['artist'],
             })
 
     for artist in artists:
         oc.add(ArtistObject(
-            #key = Callback(ShowArtistOptions, artist=artist['name_norm']),
             key = Callback(ShowArtistOptions, artist=artist['id']),
-            #rating_key = artist['name_norm'],
             rating_key = artist['id'],
             title = artist['name']
             # number of tracks by artist
@@ -289,7 +287,7 @@ def AlbumList(artist=None):
 
     for song in songs:
         # TODO: Consider using artistId
-        if artist and song['artist'] != artist:
+        if artist and song['artist'].lower() != artist:
             continue
         found = False
         for album in albums:
