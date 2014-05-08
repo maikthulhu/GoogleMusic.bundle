@@ -144,7 +144,7 @@ def GetTrack(song, gmusic=None):
         album = song['album'],
         #disc = song.get('disc', 0),
         artist = song['artist'],
-        duration = song['durationMillis'],
+        duration = int(song['durationMillis']),
         index = song.get('track', 0),
         thumb = Resource.ContentsOfURLWithFallback(album_art_url, R(ICON)),
         items = [
@@ -169,18 +169,18 @@ def PlaylistList():
 
     return oc
 
-@route('/music/googlemusic/gettracklist', playlist_id=str, artist=str, album=str, query=str)
-def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album=None, query=None):
+@route('/music/googlemusic/gettracklist', playlist_id=str, artist=str, album_id=str, query=str)
+def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album_id=None, album_name=None, query=None):
     gmusic = GMusicObject()
 
     t2 = L('Songs')
     if artist:
         t2 = artist.title()
-        if album:
-            t2 = t2 + ' - ' + album.title()
+        if album_name:
+            t2 = t2 + ' - ' + album_name.title()
         t2 = t2 + ' - ' + L('Songs')
-    elif album:
-        t2 = album.title() + ' - ' + t2
+    elif album_name:
+        t2 = album_name.title() + ' - ' + t2
     elif playlist_name:
        t2 = playlist_name.title() + ' - ' + t2
 
@@ -195,7 +195,7 @@ def GetTrackList(playlist_id=None, playlist_name=None, artist=None, album=None, 
     for song in songs:
         if artist and song['artist'].lower() != artist:
             continue
-        if album and song['album'].lower() != album:
+        if album_name and song['album'].lower() != album_name.lower():
             continue
         track = GetTrack(song, gmusic)
         oc.add(track)
@@ -292,7 +292,7 @@ def AlbumList(artist=None):
     for album in albums:
         oc.add(AlbumObject(
             #key = Callback(GetTrackList, album=album['title_norm']),
-            key = Callback(GetTrackList, album=album['id']),
+            key = Callback(GetTrackList, album_id=album['id'], album_name=album['title']),
             #rating_key = album['title_norm'],
             rating_key = album['id'],
             title = album['title'],
@@ -319,6 +319,6 @@ def SearchResults(query=None):
 @route('/music/googlemusic/songs/play', song=dict)
 def PlayAudio(song=None):
     gmusic = GMusicObject()
-    song_url = gmusic.get_stream_url(song['id'], self.device)
+    song_url = gmusic.mobileclient.get_stream_url(song['id'], gmusic.device)
 
     return Redirect(song_url)
